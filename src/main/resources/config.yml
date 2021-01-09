@@ -1,0 +1,23 @@
+nerfs:
+  stick-trade:
+    _desc: Nerf the stick trades from fletcher
+    enabled: true
+    max-uses: 2
+    min-items: 128
+    max-items: 128
+    disable-discounts: true
+
+  bookshelves-exploit:
+    _desc: Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
+    enabled: true
+    min-items: 3
+    disable-discounts: true
+
+  negative-reputation-on-killed:
+    _desc: |
+      If a villager transforms into a zombie villager, players around the villager (16 blocks)
+      will get a temporary reputation of -25 (same as killing a villager, curing is permanent +20)
+      on the transformed villager (may be shared to other villagers when cured)
+    enabled: true
+    radius: 16
+    reputation-penalty: 25
