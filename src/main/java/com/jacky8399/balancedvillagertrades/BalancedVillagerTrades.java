@@ -11,14 +11,12 @@ public final class BalancedVillagerTrades extends JavaPlugin {
     public void onEnable() {
         INSTANCE = this;
         LOGGER = getLogger();
-        LOGGER.info("Enabling BalancedVillagerTrades " + getDescription().getVersion());
 
         getCommand("balancedvillagertrades").setExecutor(new CommandBvt());
 
         NMSUtils.loadMappings();
 
         Bukkit.getPluginManager().registerEvents(new Events(), this);
-
 
         saveDefaultConfig();
         reloadConfig();
@@ -32,7 +30,7 @@ public final class BalancedVillagerTrades extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        LOGGER.info("Disabling BalancedVillagerTrades " + getDescription().getVersion());
+
     }
 
     public static BalancedVillagerTrades INSTANCE;
