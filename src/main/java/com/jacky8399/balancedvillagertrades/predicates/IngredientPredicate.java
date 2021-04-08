@@ -1,4 +1,4 @@
-package com.jacky8399.balancedvillagertrades.predicate;
+package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.google.common.base.Preconditions;
 import org.bukkit.Material;

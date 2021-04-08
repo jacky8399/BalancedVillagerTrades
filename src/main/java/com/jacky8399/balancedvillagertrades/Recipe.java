@@ -1,16 +1,13 @@
 package com.jacky8399.balancedvillagertrades;
 
-import com.jacky8399.balancedvillagertrades.predicate.AndPredicate;
-import com.jacky8399.balancedvillagertrades.predicate.TradePredicate;
+import com.jacky8399.balancedvillagertrades.predicates.AndPredicate;
+import com.jacky8399.balancedvillagertrades.predicates.TradePredicate;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Recipe {
-    public static final List<Recipe> RECIPES = new ArrayList<>();
+    public static final HashMap<String, Recipe> RECIPES = new HashMap<>();
 
     public boolean ignoreRemoved = false;
     public TradePredicate predicate;

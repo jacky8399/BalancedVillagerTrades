@@ -1,4 +1,4 @@
-package com.jacky8399.balancedvillagertrades.predicate;
+package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -136,7 +136,7 @@ public abstract class ItemPredicate extends TradePredicate {
         } else if ((matcher = AMOUNT_REGEX.matcher(trimmed)).matches()) {
             String operator = matcher.group(1);
             int operand = Integer.parseInt(matcher.group(2));
-            IntPredicate predicate = OperatorUtils.getFromOperator(operator, operand);
+            IntPredicate predicate = OperatorUtils.getPredicateFromOperator(operator, operand);
             return new ItemMatcher(trimmed) {
                 @Override
                 public boolean test(ItemStack stack) {

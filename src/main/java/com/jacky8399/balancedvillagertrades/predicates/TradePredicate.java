@@ -1,4 +1,4 @@
-package com.jacky8399.balancedvillagertrades.predicate;
+package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.entity.Villager;

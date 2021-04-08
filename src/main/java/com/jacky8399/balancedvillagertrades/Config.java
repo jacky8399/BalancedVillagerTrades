@@ -52,7 +52,7 @@ public class Config {
                     logger.severe("Error while loading recipe " + name + ", skipping");
                     e.printStackTrace();
                 }
-                Recipe.RECIPES.add(recipe);
+                Recipe.RECIPES.put(name, recipe);
             }
             logger.info("Loaded " + Recipe.RECIPES.size() + " recipes");
         } catch (IOException e) {
