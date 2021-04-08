@@ -4,11 +4,11 @@ import org.bukkit.entity.Villager;
 import org.bukkit.inventory.MerchantRecipe;
 
 import java.util.Locale;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public class VillagerJobPredicate extends TradePredicate {
-
     public VillagerJobPredicate(Target target, MatchMode matchMode, String pattern) {
         this.target = target;
         this.matchMode = matchMode;
@@ -23,6 +23,19 @@ public class VillagerJobPredicate extends TradePredicate {
             this.pattern = pattern.toLowerCase(Locale.ROOT);
             regexPattern = null;
         }
+    }
+
+    private static final Pattern REGEX = Pattern.compile("^(profession|type)\\s*?(=|matches)\\s*?(.+)$", Pattern.CASE_INSENSITIVE);
+    public static VillagerJobPredicate parse(Object obj) {
+        if (!(obj instanceof String))
+            throw new IllegalArgumentException("Expected string");
+        Matcher matcher = REGEX.matcher(obj.toString());
+        if (!matcher.matches())
+            throw new IllegalArgumentException("Invalid format");
+        Target target = Target.valueOf(matcher.group(1).toUpperCase(Locale.ROOT));
+        MatchMode mode = matcher.group(2).equals("=") ? MatchMode.TEXT : MatchMode.REGEX;
+        String pattern = matcher.group(3);
+        return new VillagerJobPredicate(target, mode, pattern);
     }
 
     public final Target target;

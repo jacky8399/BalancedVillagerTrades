@@ -1,0 +1,23 @@
+package com.jacky8399.balancedvillagertrades.predicate;
+
+import org.bukkit.entity.Villager;
+import org.bukkit.inventory.MerchantRecipe;
+import org.jetbrains.annotations.NotNull;
+
+public class NotPredicate extends TradePredicate {
+    private final TradePredicate predicate;
+    public NotPredicate(TradePredicate predicate) {
+        this.predicate = predicate;
+    }
+
+    @Override
+    public boolean test(Villager villager, MerchantRecipe recipe) {
+        return !predicate.test(villager, recipe);
+    }
+
+    @NotNull
+    @Override
+    public TradePredicate negate() {
+        return predicate;
+    }
+}

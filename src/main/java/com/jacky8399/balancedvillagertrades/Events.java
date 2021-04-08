@@ -1,7 +1,7 @@
 package com.jacky8399.balancedvillagertrades;
 
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Villager;
 import org.bukkit.entity.ZombieVillager;
@@ -11,52 +11,62 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.VillagerAcquireTradeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
 public class Events implements Listener {
-
-    public static void fixTrade(Villager villager, MerchantRecipe trade) {
-        // stick trade
-        if (Config.nerfStickTrade && villager.getProfession() == Villager.Profession.FLETCHER) {
-            ItemStack item1 = trade.getIngredients().get(0), item2 = trade.getIngredients().get(1);
-            // maybe we modified it before, so we need to check both stacks
-            if (item1.getType() != Material.STICK || (item2.getType() != Material.STICK && item2.getType() != Material.AIR))
-                return;
-            // set ingredients
-            int originalAmount = trade.getIngredients().stream().mapToInt(ItemStack::getAmount).sum();
-            int amount = Config.clamp(originalAmount, Config.nerfStickTradeMinAmount, Config.nerfStickTradeMaxAmount);
-            int amount1 = Math.min(amount, 64), amount2 = amount - amount1;
-            List<ItemStack> newIngredients = new ArrayList<>();
-            newIngredients.add(new ItemStack(Material.STICK, amount1));
-            if (amount2 > 0)
-                newIngredients.add(new ItemStack(Material.STICK, amount2));
-            trade.setIngredients(newIngredients);
-            trade.setMaxUses(Config.nerfStickTradeMaxUses);
-            if (Config.nerfStickTradeDisableDiscounts && trade.getPriceMultiplier() != 0)
-                trade.setPriceMultiplier(0);
-        }
-        // bookshelves & book trade
-        if (Config.nerfBookshelvesExploit && villager.getProfession() == Villager.Profession.LIBRARIAN &&
-                trade.getIngredients().get(0).getType() == Material.BOOK && trade.getIngredients().get(1).getType() == Material.AIR) {
-            int originalPrice = trade.getIngredients().get(0).getAmount();
-            if (originalPrice < Config.nerfBookshelvesExploitMinAmount)
-                // does this work idk
-                trade.setIngredients(Collections.singletonList(new ItemStack(Material.BOOK, Config.nerfBookshelvesExploitMinAmount)));
-            if (Config.nerfBookshelvesExploitDisableDiscounts)
-                trade.setPriceMultiplier(0);
-        }
-    }
+//
+//    public static void fixTrade(Villager villager, MerchantRecipe trade) {
+//        // stick trade
+//        if (Config.nerfStickTrade && villager.getProfession() == Villager.Profession.FLETCHER) {
+//            ItemStack item1 = trade.getIngredients().get(0), item2 = trade.getIngredients().get(1);
+//            // maybe we modified it before, so we need to check both stacks
+//            if (item1.getType() != Material.STICK || (item2.getType() != Material.STICK && item2.getType() != Material.AIR))
+//                return;
+//            // set ingredients
+//            int originalAmount = trade.getIngredients().stream().mapToInt(ItemStack::getAmount).sum();
+//            int amount = Config.clamp(originalAmount, Config.nerfStickTradeMinAmount, Config.nerfStickTradeMaxAmount);
+//            int amount1 = Math.min(amount, 64), amount2 = amount - amount1;
+//            List<ItemStack> newIngredients = new ArrayList<>();
+//            newIngredients.add(new ItemStack(Material.STICK, amount1));
+//            if (amount2 > 0)
+//                newIngredients.add(new ItemStack(Material.STICK, amount2));
+//            trade.setIngredients(newIngredients);
+//            trade.setMaxUses(Config.nerfStickTradeMaxUses);
+//            if (Config.nerfStickTradeDisableDiscounts && trade.getPriceMultiplier() != 0)
+//                trade.setPriceMultiplier(0);
+//        }
+//        // bookshelves & book trade
+//        if (Config.nerfBookshelvesExploit && villager.getProfession() == Villager.Profession.LIBRARIAN &&
+//                trade.getIngredients().get(0).getType() == Material.BOOK && trade.getIngredients().get(1).getType() == Material.AIR) {
+//            int originalPrice = trade.getIngredients().get(0).getAmount();
+//            if (originalPrice < Config.nerfBookshelvesExploitMinAmount)
+//                // does this work idk
+//                trade.setIngredients(Collections.singletonList(new ItemStack(Material.BOOK, Config.nerfBookshelvesExploitMinAmount)));
+//            if (Config.nerfBookshelvesExploitDisableDiscounts)
+//                trade.setPriceMultiplier(0);
+//        }
+//    }
 
     // patch trades
     @EventHandler(ignoreCancelled = true)
     public void onNewTrade(VillagerAcquireTradeEvent e) {
         if (e.getEntity() instanceof Villager) {
-            MerchantRecipe recipe = e.getRecipe();
-            fixTrade((Villager) e.getEntity(), recipe);
-            e.setRecipe(recipe);
+            TradeWrapper trade = new TradeWrapper((Villager) e.getEntity(), e.getRecipe());
+            for (Recipe recipe : Recipe.RECIPES) {
+                if (recipe.ignoreRemoved && trade.isRemove())
+                    continue;
+                if (recipe.shouldHandle(trade))
+                    recipe.handle(trade);
+            }
+            if (trade.isRemove()) {
+                e.setCancelled(true);
+                return;
+            }
+            e.setRecipe(trade.getRecipe());
         }
     }
 
@@ -64,7 +74,22 @@ public class Events implements Listener {
     public void onInteract(PlayerInteractEntityEvent e) {
         if (e.getRightClicked() instanceof Villager) {
             Villager villager = (Villager) e.getRightClicked();
-            villager.getRecipes().forEach(recipe -> fixTrade(villager, recipe));
+            List<MerchantRecipe> newRecipes = new ArrayList<>(villager.getRecipes());
+            for (ListIterator<MerchantRecipe> iterator = newRecipes.listIterator(); iterator.hasNext();) {
+                TradeWrapper trade = new TradeWrapper(villager, iterator.next());
+                for (Recipe recipe : Recipe.RECIPES) {
+                    if (recipe.ignoreRemoved && trade.isRemove())
+                        continue;
+                    if (recipe.shouldHandle(trade))
+                        recipe.handle(trade);
+                }
+                if (trade.isRemove()) {
+                    iterator.remove();
+                    continue;
+                }
+                iterator.set(trade.getRecipe());
+            }
+            villager.setRecipes(newRecipes);
         }
     }
 
