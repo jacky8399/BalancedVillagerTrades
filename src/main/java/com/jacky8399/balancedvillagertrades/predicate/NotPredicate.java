@@ -15,6 +15,11 @@ public class NotPredicate extends TradePredicate {
         return !predicate.test(villager, recipe);
     }
 
+    @Override
+    public String toString() {
+        return "not " + predicate;
+    }
+
     @NotNull
     @Override
     public TradePredicate negate() {

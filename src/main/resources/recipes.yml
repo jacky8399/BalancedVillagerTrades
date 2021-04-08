@@ -1,0 +1,35 @@
+bookshelves-exploit:
+  desc: |
+    Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
+  when:
+    villager: profession = LIBRARIAN
+    ingredient-0:
+      matches:
+        - type = book
+  do:
+    set:
+      ingredient-0: amount >= 3 # require min amount to be 3
+      apply-discounts: false
+
+stick-trade:
+  desc: Nerf the stick trades from fletcher
+  when:
+    villager: profession = fletcher
+    ingredient-0:
+      matches:
+        - type = stick
+  do:
+    set:
+      ingredient-0: amount >= 128 # automatically splits the stack for you
+      max-uses: 2
+
+diamond-item-trades:
+  desc: Nerf diamond armor and tool trades
+  when:
+    villager: profession matches ^armorer|toolsmith$
+    result:
+      matches:
+        - type matches ^diamond_.+$ # Regex
+  do:
+    set:
+      apply-discounts: false

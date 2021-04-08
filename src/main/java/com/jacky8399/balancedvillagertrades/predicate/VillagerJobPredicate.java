@@ -38,6 +38,11 @@ public class VillagerJobPredicate extends TradePredicate {
         return new VillagerJobPredicate(target, mode, pattern);
     }
 
+    @Override
+    public String toString() {
+        return target + " " + (matchMode == MatchMode.TEXT ? "=" : "matches") + " " + pattern;
+    }
+
     public final Target target;
     public final MatchMode matchMode;
     public final String pattern;

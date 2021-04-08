@@ -18,7 +18,9 @@ public class CommandBvt implements TabExecutor {
                 return true;
             }
         }
-        return false;
+        sender.sendMessage(ChatColor.GREEN + "You are using BalancedVillagerTrades v" + BalancedVillagerTrades.INSTANCE.getDescription().getVersion());
+        sender.sendMessage(ChatColor.AQUA + "Loaded recipes: " + Recipe.RECIPES.size());
+        return true;
     }
 
     @Override

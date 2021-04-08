@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public abstract class ItemPredicate extends TradePredicate {
 
-    public ItemPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<Predicate<ItemStack>> simpleMatchers) {
+    public ItemPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<ItemMatcher> simpleMatchers) {
         this.stack = stack.clone();
         this.matchers = ImmutableSet.copyOf(matchers);
         this.simpleMatchers = ImmutableList.copyOf(simpleMatchers);
@@ -32,7 +32,7 @@ public abstract class ItemPredicate extends TradePredicate {
 
     public final ItemStack stack;
     public final ImmutableSet<ComplexItemMatcher> matchers;
-    public final ImmutableList<Predicate<ItemStack>> simpleMatchers;
+    public final ImmutableList<ItemMatcher> simpleMatchers;
 
     @Nullable
     public abstract ItemStack getStack(Villager villager, MerchantRecipe recipe);
@@ -53,6 +53,20 @@ public abstract class ItemPredicate extends TradePredicate {
             }
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Match against ").append(stack).append(" by:\n");
+        for (ComplexItemMatcher matcher : matchers) {
+            builder.append("- ").append(matcher.name).append('\n');
+        }
+        builder.append("Match by:\n");
+        for (ItemMatcher matcher : simpleMatchers) {
+            builder.append("- ").append(matcher.pattern).append('\n');
+        }
+        return builder.deleteCharAt(builder.length() - 1).toString();
     }
 
     public static class ComplexItemMatcher implements BiPredicate<ItemStack, ItemStack> {
@@ -93,11 +107,18 @@ public abstract class ItemPredicate extends TradePredicate {
         public static final ComplexItemMatcher NAME = compareMeta("name", ItemMeta::hasDisplayName, ItemMeta::getDisplayName, String::equals);
     }
 
+    public static abstract class ItemMatcher implements Predicate<ItemStack> {
+        public final String pattern;
+        public ItemMatcher(String pattern) {
+            this.pattern = pattern;
+        }
+    }
+
     private static final Pattern TYPE_REGEX = Pattern.compile("^type\\s*?(=|matches)\\s*?(.+)$");
     private static final Pattern AMOUNT_REGEX = Pattern.compile("^(?:amount|count)\\s*?(>|>=|<|<=|=|<>)\\s*?(\\d+)$");
     private static final Pattern AMOUNT_BETWEEN_REGEX = Pattern.compile("^(?:amount|count)\\s+?between\\s+?(\\d+)\\s+?and\\s+?(\\d+)$");
     /** lazy implementation */
-    public static Predicate<ItemStack> getFromInput(String str) {
+    public static ItemMatcher getFromInput(String str) {
         String trimmed = str.trim();
         Matcher matcher;
         if ((matcher = TYPE_REGEX.matcher(trimmed)).matches()) {
@@ -105,22 +126,37 @@ public abstract class ItemPredicate extends TradePredicate {
             if (type.equals("=")) {
                 Material mat = Material.matchMaterial(matcher.group(2));
                 Preconditions.checkNotNull(mat, "Can't find type by name " + matcher.group(2));
-                return stack -> stack.getType().equals(mat);
+                return new ItemMatcher(trimmed) {
+                    @Override
+                    public boolean test(ItemStack stack) {
+                        return stack.getType().equals(mat);
+                    }
+                };
             }
         } else if ((matcher = AMOUNT_REGEX.matcher(trimmed)).matches()) {
             String operator = matcher.group(1);
             int operand = Integer.parseInt(matcher.group(2));
             IntPredicate predicate = OperatorUtils.getFromOperator(operator, operand);
-            return stack -> predicate.test(stack.getAmount());
+            return new ItemMatcher(trimmed) {
+                @Override
+                public boolean test(ItemStack stack) {
+                    return predicate.test(stack.getAmount());
+                }
+            };
         } else if ((matcher = AMOUNT_BETWEEN_REGEX.matcher(trimmed)).matches()) {
             int i1 = Integer.parseInt(matcher.group(1)), i2 = Integer.parseInt(matcher.group(2));
             int min = Math.min(i1, i2), max = Math.max(i1, i2);
-            return stack -> stack.getAmount() >= min && stack.getAmount() <= max;
+            return new ItemMatcher(trimmed) {
+                @Override
+                public boolean test(ItemStack stack) {
+                    return stack.getAmount() >= min && stack.getAmount() <= max;
+                }
+            };
         }
         throw new IllegalArgumentException(str + " is not a valid matcher");
     }
 
-    public static List<Predicate<ItemStack>> getFromInput(List<String> str) {
+    public static List<ItemMatcher> getFromInput(List<String> str) {
         return str.stream().map(ItemPredicate::getFromInput).collect(Collectors.toList());
     }
 }

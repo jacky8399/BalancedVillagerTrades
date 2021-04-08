@@ -11,11 +11,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 
 public class IngredientPredicate extends ItemPredicate {
 
-    public IngredientPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<Predicate<ItemStack>> simpleMatchers, int ingredient) {
+    public IngredientPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<ItemMatcher> simpleMatchers, int ingredient) {
         super(stack, matchers, simpleMatchers);
         Preconditions.checkArgument(ingredient == 0 || ingredient == 1, "Ingredient out of bounds");
         this.ingredient = ingredient;
@@ -43,5 +42,10 @@ public class IngredientPredicate extends ItemPredicate {
             return ingredients.get(ingredient);
         }
         return null;
+    }
+
+    @Override
+    public String toString() {
+        return "ingredient " + ingredient + ":\n" + super.toString();
     }
 }

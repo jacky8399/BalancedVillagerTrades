@@ -6,6 +6,7 @@ import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class AndPredicate extends TradePredicate {
     private final ImmutableList<TradePredicate> predicates;
@@ -20,6 +21,14 @@ public class AndPredicate extends TradePredicate {
                 return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return predicates.stream()
+                .map(TradePredicate::toString)
+                .collect(Collectors.joining("\n  ", "all match:\n  ", ""))
+                .trim();
     }
 
     @Override

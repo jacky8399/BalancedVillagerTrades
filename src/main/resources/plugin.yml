@@ -9,7 +9,7 @@ commands:
   balancedvillagertrades:
     permission: balancedvillagertrades.admin
     aliases: ["bvt"]
-    usage: "/<command> reload"
+    usage: "/<command> [reload]"
 
 permissions:
   balancedvillagertrades.admin:

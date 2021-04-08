@@ -10,10 +10,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 
 public class ResultPredicate extends ItemPredicate {
-    public ResultPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<Predicate<ItemStack>> simpleMatchers) {
+    public ResultPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<ItemMatcher> simpleMatchers) {
         super(stack, matchers, simpleMatchers);
     }
 
@@ -33,5 +32,10 @@ public class ResultPredicate extends ItemPredicate {
     @Override
     public @Nullable ItemStack getStack(Villager villager, MerchantRecipe recipe) {
         return recipe.getResult();
+    }
+
+    @Override
+    public String toString() {
+        return "result:\n" + super.toString();
     }
 }
