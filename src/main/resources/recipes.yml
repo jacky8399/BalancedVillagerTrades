@@ -33,3 +33,13 @@ diamond-item-trades:
   do:
     set:
       apply-discounts: false
+
+# remove-stone-trade:
+#   desc: Removes stone trades from masons
+#   when:
+#     villager: profession = mason
+#     ingredient-0:
+#       matches:
+#         - type = stone
+#   do:
+#     remove: true
