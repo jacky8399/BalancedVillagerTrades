@@ -3,7 +3,6 @@ package com.jacky8399.balancedvillagertrades.predicates;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Villager;
@@ -55,7 +54,7 @@ public abstract class ItemPredicate extends TradePredicate {
                 return false;
             }
         }
-        BalancedVillagerTrades.LOGGER.info("Item matcher success");
+//        BalancedVillagerTrades.LOGGER.info("Item matcher success");
         return true;
     }
 
