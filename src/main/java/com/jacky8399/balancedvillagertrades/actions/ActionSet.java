@@ -16,10 +16,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ActionSet<T> extends Action {
+    public final String fieldName;
     public final Field<T> field;
     public final UnaryOperator<T> transformer;
 
-    public ActionSet(Field<T> field, UnaryOperator<T> transformer) {
+    public ActionSet(String fieldName, Field<T> field, UnaryOperator<T> transformer) {
+        this.fieldName = fieldName;
         this.field = field;
         this.transformer = transformer;
     }
@@ -30,20 +32,26 @@ public class ActionSet<T> extends Action {
         field.setter.accept(tradeWrapper, newValue);
     }
 
+    @Override
+    public String toString() {
+        return "Set " + fieldName;
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static List<ActionSet<?>> parse(Map<String, Object> map) {
-        return map.entrySet().stream()
+        return (List<ActionSet<?>>) (List) // use rawtypes
+                map.entrySet().stream()
                 .map(entry -> {
                     Field<?> field = FIELDS.get(entry.getKey());
                     UnaryOperator<?> operator = getTransformer(field.clazz, entry.getValue().toString());
-                    return new ActionSet(field, operator);
+                    return new ActionSet(entry.getKey() + " to " + entry.getValue().toString(),
+                            field, operator);
                 })
                 .collect(Collectors.toList());
     }
 
     private static final Pattern OPERATOR_PATTERN = Pattern.compile("^(>|>=|<|<=|=)\\s*?(\\d+)$");
     private static final Pattern FIELD_OPERATOR_PATTERN = Pattern.compile("^(amount)\\s*?(>|>=|<|<=|=)\\s*?(\\d+)$");
-    @SuppressWarnings("unchecked")
     public static UnaryOperator<?> getTransformer(Class<?> clazz, String input) {
         String trimmed = input.trim();
         if (clazz == Boolean.class) {
@@ -52,10 +60,11 @@ public class ActionSet<T> extends Action {
         } else if (clazz == Integer.class) {
             Matcher operator = OPERATOR_PATTERN.matcher(trimmed);
             if (operator.matches()) {
-                Integer num = Ints.tryParse(operator.group(2));
-                if (num == null)
-                    throw new IllegalArgumentException(operator.group(2) + " is not a valid number");
+                int num = Integer.parseInt(operator.group(2));
                 return oldInt -> OperatorUtils.getFunctionFromOperator(operator.group(1), ()->num);
+            } else {
+                int num = Integer.parseInt(trimmed);
+                return oldInt -> num;
             }
         } else if (clazz == ItemStack.class) {
             Matcher operator = FIELD_OPERATOR_PATTERN.matcher(trimmed);

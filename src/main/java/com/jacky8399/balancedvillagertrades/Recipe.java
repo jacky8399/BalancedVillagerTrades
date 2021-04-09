@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades;
 
+import com.jacky8399.balancedvillagertrades.actions.Action;
 import com.jacky8399.balancedvillagertrades.predicates.AndPredicate;
 import com.jacky8399.balancedvillagertrades.predicates.TradePredicate;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
@@ -11,6 +12,7 @@ public class Recipe {
 
     public boolean ignoreRemoved = false;
     public TradePredicate predicate;
+    public List<? extends Action> actions;
 
     public final String name;
     public String desc;
@@ -18,6 +20,7 @@ public class Recipe {
         this.name = name;
     }
 
+    @SuppressWarnings("unchecked")
     public void readFromMap(Map<String, Object> map) throws IllegalArgumentException {
         desc = String.valueOf(map.get("desc"));
 
@@ -42,7 +45,7 @@ public class Recipe {
         } else if (!(doMap instanceof Map)) {
             throw new IllegalArgumentException("Expected map at 'do' section");
         }
-        // TODO parse action
+        actions = Action.getFromMap((Map<String, Object>) doMap);
     }
 
     public boolean shouldHandle(TradeWrapper trade) {
@@ -50,6 +53,8 @@ public class Recipe {
     }
 
     public void handle(TradeWrapper trade) {
-        // TODO actions
+        for (Action action : actions) {
+            action.accept(trade);
+        }
     }
 }

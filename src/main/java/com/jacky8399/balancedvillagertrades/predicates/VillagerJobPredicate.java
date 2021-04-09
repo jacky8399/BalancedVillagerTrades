@@ -25,7 +25,7 @@ public class VillagerJobPredicate extends TradePredicate {
         }
     }
 
-    private static final Pattern REGEX = Pattern.compile("^(profession|type)\\s*?(=|matches)\\s*?(.+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern REGEX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
     public static VillagerJobPredicate parse(Object obj) {
         if (!(obj instanceof String))
             throw new IllegalArgumentException("Expected string");
@@ -52,6 +52,7 @@ public class VillagerJobPredicate extends TradePredicate {
     public boolean test(Villager villager, MerchantRecipe merchantRecipe) {
         String target = (this.target == Target.PROFESSION ? villager.getProfession() : villager.getVillagerType())
                 .name().toLowerCase(Locale.ROOT);
+//        BalancedVillagerTrades.LOGGER.info("Villager target: " + target + ", " + this);
         if (matchMode == MatchMode.TEXT)
             return target.equals(pattern);
         else

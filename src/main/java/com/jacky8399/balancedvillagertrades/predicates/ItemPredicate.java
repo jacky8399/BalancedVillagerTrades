@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades.predicates;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Villager;
@@ -40,10 +41,12 @@ public abstract class ItemPredicate extends TradePredicate {
     @Override
     public boolean test(Villager villager, MerchantRecipe merchantRecipe) {
         ItemStack toTest = getStack(villager, merchantRecipe);
+//        BalancedVillagerTrades.LOGGER.info(String.format("Item: %s (Origin: %s)", toTest, this.getClass().getSimpleName()));
         if (toTest == null)
             return false;
-        for (Predicate<ItemStack> simpleMatcher : simpleMatchers) {
+        for (ItemMatcher simpleMatcher : simpleMatchers) {
             if (!simpleMatcher.test(toTest)) {
+//                BalancedVillagerTrades.LOGGER.info("Failed at " + simpleMatcher.pattern);
                 return false;
             }
         }
@@ -52,6 +55,7 @@ public abstract class ItemPredicate extends TradePredicate {
                 return false;
             }
         }
+        BalancedVillagerTrades.LOGGER.info("Item matcher success");
         return true;
     }
 
@@ -114,22 +118,31 @@ public abstract class ItemPredicate extends TradePredicate {
         }
     }
 
-    private static final Pattern TYPE_REGEX = Pattern.compile("^type\\s*?(=|matches)\\s*?(.+)$");
-    private static final Pattern AMOUNT_REGEX = Pattern.compile("^(?:amount|count)\\s*?(>|>=|<|<=|=|<>)\\s*?(\\d+)$");
-    private static final Pattern AMOUNT_BETWEEN_REGEX = Pattern.compile("^(?:amount|count)\\s+?between\\s+?(\\d+)\\s+?and\\s+?(\\d+)$");
+    private static final Pattern TYPE_REGEX = Pattern.compile("^type\\s*(=|matches)\\s*(.+)$");
+    private static final Pattern AMOUNT_REGEX = Pattern.compile("^(?:amount|count)\\s*(>|>=|<|<=|=|<>)\\s*(\\d+)$");
+    private static final Pattern AMOUNT_BETWEEN_REGEX = Pattern.compile("^(?:amount|count)\\s+between\\s+(\\d+)\\s+and\\s+(\\d+)$");
     /** lazy implementation */
     public static ItemMatcher getFromInput(String str) {
         String trimmed = str.trim();
         Matcher matcher;
         if ((matcher = TYPE_REGEX.matcher(trimmed)).matches()) {
             String type = matcher.group(1);
+            String pattern = matcher.group(2).trim();
             if (type.equals("=")) {
-                Material mat = Material.matchMaterial(matcher.group(2));
-                Preconditions.checkNotNull(mat, "Can't find type by name " + matcher.group(2));
+                Material mat = Material.matchMaterial(pattern);
+                Preconditions.checkNotNull(mat, "Can't find type by name " + pattern);
                 return new ItemMatcher(trimmed) {
                     @Override
                     public boolean test(ItemStack stack) {
                         return stack.getType().equals(mat);
+                    }
+                };
+            } else { // regex oh god
+                Pattern innerPattern = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+                return new ItemMatcher(trimmed) {
+                    @Override
+                    public boolean test(ItemStack stack) {
+                        return innerPattern.matcher(stack.getType().name()).matches();
                     }
                 };
             }

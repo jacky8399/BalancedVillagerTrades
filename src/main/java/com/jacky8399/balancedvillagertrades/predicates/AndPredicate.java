@@ -17,8 +17,10 @@ public class AndPredicate extends TradePredicate {
     @Override
     public boolean test(Villager villager, MerchantRecipe recipe) {
         for (TradePredicate predicate : predicates) {
-            if (!predicate.test(villager, recipe))
+            if (!predicate.test(villager, recipe)) {
+//                BalancedVillagerTrades.LOGGER.info("And predicate failed at " + predicate);
                 return false;
+            }
         }
         return true;
     }

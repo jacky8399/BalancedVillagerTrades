@@ -27,13 +27,16 @@ public class Config {
         nerfNegativeReputationOnKilled = config.getBoolean("nerfs.negative-reputation-on-killed.enabled");
         nerfNegativeReputationOnKilledRadius = config.getDouble("nerfs.negative-reputation-on-killed.radius");
         nerfNegativeReputationOnKilledReputationPenalty = clamp(config.getInt("nerfs.negative-reputation-on-killed.reputation-penalty"), 1, 100);
+
+        parseRecipes();
     }
 
     public static void parseRecipes() {
         BalancedVillagerTrades plugin = BalancedVillagerTrades.INSTANCE;
         Logger logger = plugin.getLogger();
-        plugin.saveResource("recipes.yml", false); // save default recipes.yml
         File recipesFile = new File(plugin.getDataFolder(), "recipes.yml");
+        if (!recipesFile.exists())
+            plugin.saveResource("recipes.yml", false); // save default recipes.yml
         try (FileInputStream stream = new FileInputStream(recipesFile);
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             Map<String, Object> map = (new Yaml()).load(reader);
@@ -48,7 +51,7 @@ public class Config {
                 Recipe recipe = new Recipe(name);
                 try {
                     recipe.readFromMap(entryMap);
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     logger.severe("Error while loading recipe " + name + ", skipping");
                     e.printStackTrace();
                 }
