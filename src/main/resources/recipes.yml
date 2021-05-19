@@ -1,12 +1,14 @@
-bookshelves-exploit:
-  desc: |
-    Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
-  when:
+# For more information:
+# https://github.com/jacky8399/BalancedVillagerTrades/wiki
+bookshelves-exploit: # Name of the recipe
+  # Description
+  desc: Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
+  when: # The predicate
     villager: profession = LIBRARIAN
     ingredient-0:
       matches:
         - type = book
-  do:
+  do: # Action to perform
     set:
       ingredient-0: amount >= 3 # require min amount to be 3
       apply-discounts: false
