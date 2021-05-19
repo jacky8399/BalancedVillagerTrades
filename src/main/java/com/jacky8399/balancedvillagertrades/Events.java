@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.entity.ZombieVillager;
 import org.bukkit.event.EventHandler;
@@ -104,18 +105,18 @@ public class Events implements Listener {
             Villager villager = (Villager) e.getEntity();
             Object gossips = NMSUtils.getGossips(villager);
             // find players in radius
-            Bukkit.getOnlinePlayers().stream()
-                    .filter(player -> player.getLocation().distance(villager.getLocation()) <= Config.nerfNegativeReputationOnKilledRadius)
-                    .forEach(player -> {
-                        // add gossips
-                        NMSUtils.addGossip(
-                                gossips,
-                                // major positives are permanent
-                                player.getUniqueId(), NMSUtils.ReputationTypeWrapped.MAJOR_NEGATIVE, Config.nerfNegativeReputationOnKilledReputationPenalty
-                        );
-                        // show angry particles
-                        player.spawnParticle(Particle.VILLAGER_ANGRY, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);
-                    });
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getWorld() == villager.getWorld() && player.getLocation()
+                        .distance(villager.getLocation()) <= Config.nerfNegativeReputationOnKilledRadius) {
+                    // add gossips
+                    NMSUtils.addGossip(gossips, player.getUniqueId(),
+                            // major positives are permanent
+                            NMSUtils.ReputationTypeWrapped.MAJOR_NEGATIVE, Config.nerfNegativeReputationOnKilledReputationPenalty
+                    );
+                    // show angry particles
+                    player.spawnParticle(Particle.VILLAGER_ANGRY, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);
+                }
+            }
             ZombieVillager zombieVillager = (ZombieVillager) e.getTransformedEntity();
             // copy nbt to zombie villager
             NMSUtils.copyGossipsFrom(zombieVillager, gossips);
