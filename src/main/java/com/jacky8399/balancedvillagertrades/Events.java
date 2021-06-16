@@ -5,7 +5,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
-import org.bukkit.entity.ZombieVillager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -95,7 +94,7 @@ public class Events implements Listener {
     }
 
     // negative reputation
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTransform(EntityTransformEvent e) {
         if (Config.nerfNegativeReputationOnKilled &&
                 e.getTransformReason() == EntityTransformEvent.TransformReason.INFECTION) {
@@ -103,13 +102,12 @@ public class Events implements Listener {
             if (NMSUtils.REPUTATION_ADD_REPUTATION == null)
                 return;
             Villager villager = (Villager) e.getEntity();
-            Object gossips = NMSUtils.getGossips(villager);
             // find players in radius
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getWorld() == villager.getWorld() && player.getLocation()
                         .distance(villager.getLocation()) <= Config.nerfNegativeReputationOnKilledRadius) {
                     // add gossips
-                    NMSUtils.addGossip(gossips, player.getUniqueId(),
+                    NMSUtils.addGossip(villager, player.getUniqueId(),
                             // major positives are permanent
                             NMSUtils.ReputationTypeWrapped.MAJOR_NEGATIVE, Config.nerfNegativeReputationOnKilledReputationPenalty
                     );
@@ -117,9 +115,9 @@ public class Events implements Listener {
                     player.spawnParticle(Particle.VILLAGER_ANGRY, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);
                 }
             }
-            ZombieVillager zombieVillager = (ZombieVillager) e.getTransformedEntity();
-            // copy nbt to zombie villager
-            NMSUtils.copyGossipsFrom(zombieVillager, gossips);
+//            ZombieVillager zombieVillager = (ZombieVillager) e.getTransformedEntity();
+//            // copy nbt to zombie villager
+//            NMSUtils.copyGossipsFrom(zombieVillager, gossips);
         }
     }
 }

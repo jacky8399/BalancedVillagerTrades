@@ -4,20 +4,23 @@ import com.google.common.collect.ImmutableMap;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.entity.Villager;
-import org.bukkit.entity.ZombieVillager;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
 
 // wow what a mess
 public class NMSUtils {
+    private static final String NMS_PACKAGE = "net.minecraft.server.";
     public static final ImmutableMap<String, String[]> MAPPINGS = ImmutableMap.<String, String[]>builder()
             // example
-            .put("mapping version", new String[]{"EntityZombieVillager.setGossips", "EntityVillager.getGossips", "DynamicOpsNBT.INSTANCE", "Reputation.store", "Reputation.add"})
+            .put("mapping version", new String[]{
+                    "EntityVillager.class", "EntityVillager.getGossips", "Reputation.class", "Reputation.add", "ReputationType.class"
+            })
             // mappings
-            .put("v1_16_R1", new String[]{"a", "fj", "a", "a", "a"})
-            .put("v1_16_R2", new String[]{"a", "fj", "a", "a", "a"})
-            .put("v1_16_R3", new String[]{"a", "fj", "a", "a", "a"})
+            .put("v1_16_R1", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
+            .put("v1_16_R2", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
+            .put("v1_16_R3", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
+            .put("v1_17_R1", new String[]{"net.minecraft.world.entity.npc.EntityVillager", "fS", "net.minecraft.world.entity.ai.gossip.Reputation", "a", "net.minecraft.world.entity.ai.gossip.ReputationType"})
             .build();
     public static String mappingsVersion;
 
@@ -41,26 +44,23 @@ public class NMSUtils {
         }
     }
 
-    public static boolean isSupportedVersion() {
-        return MAPPINGS.containsKey(mappingsVersion);
-    }
+    //    public static void copyGossipsFrom(ZombieVillager zombieVillager, Object gossips) {
+//        Object nms = getHandle(zombieVillager);
+//        try {
+//            Object dynamic = REPUTATION_STORE.invoke(gossips, DYNAMIC_OPS_NBT_INSTANCE);
+//            Object nbt = DYNAMIC_GET_VALUE.invoke(dynamic);
+//            ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS.invoke(nms, nbt);
+//        } catch (Exception ignored) {}
+//    }
 
-    public static void copyGossipsFrom(ZombieVillager zombieVillager, Object gossips) {
-        Object nms = getHandle(zombieVillager);
+    public static void addGossip(Villager villager, UUID uuid, ReputationTypeWrapped reputationType, int amount) {
         try {
-            Object dynamic = REPUTATION_STORE.invoke(gossips, DYNAMIC_OPS_NBT_INSTANCE);
-            Object nbt = DYNAMIC_GET_VALUE.invoke(dynamic);
-            ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS.invoke(nms, nbt);
-        } catch (Exception ignored) {}
-    }
-
-    public static void addGossip(Object gossips, UUID uuid, ReputationTypeWrapped reputationType, int amount) {
-        try {
+            Object gossips = getGossips(villager);
             REPUTATION_ADD_REPUTATION.invoke(gossips, uuid, reputationType.nmsCopy, amount);
         } catch (Exception ignored) {}
     }
 
-    public static Object getGossips(Villager villager) {
+    private static Object getGossips(Villager villager) {
         Object nms = getHandle(villager);
         try {
             return ENTITY_VILLAGER_GET_GOSSIPS.invoke(nms);
@@ -77,41 +77,26 @@ public class NMSUtils {
         }
     }
 
-    public static Class<?> getNMSClazz(String name) {
-        String clazzName = "net.minecraft.server." + mappingsVersion + "." + name;
-        try {
-            return Class.forName(clazzName);
-        } catch (Exception e) {
-            if (!isSupportedVersion()) {
-                BalancedVillagerTrades.LOGGER.warning("Class " + clazzName + " not found!");
-                return null;
-            } else {
-                // shouldn't happen
-                throw new Error(e);
-            }
-        }
-    }
-
     // utilities
-    public static Class<?> NBT_BASE_CLAZZ = getNMSClazz("NBTBase");
-    public static Class<?> DYNAMIC_CLAZZ; // what the hell is a dynamic
-    public static Method DYNAMIC_GET_VALUE;
-    public static Class<?> DYNAMIC_OPS_CLAZZ;
-    public static Class<?> DYNAMIC_OPS_NBT_CLAZZ = getNMSClazz("DynamicOpsNBT");
-    public static Object DYNAMIC_OPS_NBT_INSTANCE;
+//    public static Class<?> NBT_BASE_CLAZZ = getNMSClazz("NBTBase");
+//    public static Class<?> DYNAMIC_CLAZZ; // what the hell is a dynamic
+//    public static Method DYNAMIC_GET_VALUE;
+//    public static Class<?> DYNAMIC_OPS_CLAZZ;
+//    public static Class<?> DYNAMIC_OPS_NBT_CLAZZ = getNMSClazz("DynamicOpsNBT");
+//    public static Object DYNAMIC_OPS_NBT_INSTANCE;
 
-    static {
-        try {
-            DYNAMIC_CLAZZ = Class.forName("com.mojang.serialization.Dynamic");
-            DYNAMIC_GET_VALUE = DYNAMIC_CLAZZ.getMethod("getValue");
-            DYNAMIC_OPS_CLAZZ = Class.forName("com.mojang.serialization.DynamicOps");
-        } catch (Exception ignored) {}
-    }
+//    static {
+//        try {
+//            DYNAMIC_CLAZZ = Class.forName("com.mojang.serialization.Dynamic");
+//            DYNAMIC_GET_VALUE = DYNAMIC_CLAZZ.getMethod("getValue");
+//            DYNAMIC_OPS_CLAZZ = Class.forName("com.mojang.serialization.DynamicOps");
+//        } catch (Exception ignored) {}
+//    }
 
-    public static Class<?> ENTITY_ZOMBIE_VILLAGER_CLAZZ = getNMSClazz("EntityZombieVillager");
-    public static Class<?> ENTITY_VILLAGER_CLAZZ = getNMSClazz("EntityVillager");
-    public static Class<?> REPUTATION_CLAZZ = getNMSClazz("Reputation");
-    public static Class<?> REPUTATION_TYPE_CLAZZ = getNMSClazz("ReputationType");
+//    public static Class<?> ENTITY_ZOMBIE_VILLAGER_CLAZZ = getNMSClazz("EntityZombieVillager");
+    public static Class<?> ENTITY_VILLAGER_CLAZZ;
+    public static Class<?> REPUTATION_CLAZZ;
+    public static Class<?> REPUTATION_TYPE_CLAZZ;
 
     public enum ReputationTypeWrapped {
         MAJOR_NEGATIVE,
@@ -126,9 +111,9 @@ public class NMSUtils {
         }
     }
 
-    public static Method ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS;
+//    public static Method ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS;
     public static Method ENTITY_VILLAGER_GET_GOSSIPS;
-    public static Method REPUTATION_STORE;
+//    public static Method REPUTATION_STORE;
     public static Method REPUTATION_ADD_REPUTATION;
 
 
@@ -143,11 +128,14 @@ public class NMSUtils {
             return;
         }
         try {
-            ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS = ENTITY_ZOMBIE_VILLAGER_CLAZZ.getMethod(mappings[0], NBT_BASE_CLAZZ);
+//            ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS = ENTITY_ZOMBIE_VILLAGER_CLAZZ.getMethod(mappings[0], NBT_BASE_CLAZZ);
+            ENTITY_VILLAGER_CLAZZ = Class.forName(mappings[0]);
             ENTITY_VILLAGER_GET_GOSSIPS = ENTITY_VILLAGER_CLAZZ.getMethod(mappings[1]);
-            DYNAMIC_OPS_NBT_INSTANCE = DYNAMIC_OPS_NBT_CLAZZ.getField(mappings[2]).get(null);
-            REPUTATION_STORE = REPUTATION_CLAZZ.getMethod(mappings[3], DYNAMIC_OPS_CLAZZ);
-            REPUTATION_ADD_REPUTATION = REPUTATION_CLAZZ.getMethod(mappings[4], UUID.class, REPUTATION_TYPE_CLAZZ, int.class);
+//            DYNAMIC_OPS_NBT_INSTANCE = DYNAMIC_OPS_NBT_CLAZZ.getField(mappings[2]).get(null);
+//            REPUTATION_STORE = REPUTATION_CLAZZ.getMethod(mappings[3], DYNAMIC_OPS_CLAZZ);
+            REPUTATION_CLAZZ = Class.forName(mappings[2]);
+            REPUTATION_CLAZZ = Class.forName(mappings[4]);
+            REPUTATION_ADD_REPUTATION = REPUTATION_CLAZZ.getMethod(mappings[3], UUID.class, REPUTATION_TYPE_CLAZZ, int.class);
         } catch (Exception e) {
             e.printStackTrace();
         }
