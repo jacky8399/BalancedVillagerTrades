@@ -10,7 +10,15 @@ import java.util.UUID;
 
 // wow what a mess
 public class NMSUtils {
-    private static final String NMS_PACKAGE = "net.minecraft.server.";
+    public static String mappingsVersion;
+
+    static {
+        Class<? extends Server> clazz = Bukkit.getServer().getClass();
+        // org.bukkit.craftbukkit.v1_16_R3.CraftServer
+        mappingsVersion = clazz.getName().split("\\.")[3];
+    }
+
+    private static final String NMS_PACKAGE = "net.minecraft.server." + mappingsVersion + ".";
     public static final ImmutableMap<String, String[]> MAPPINGS = ImmutableMap.<String, String[]>builder()
             // example
             .put("mapping version", new String[]{
@@ -20,27 +28,25 @@ public class NMSUtils {
             .put("v1_16_R1", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
             .put("v1_16_R2", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
             .put("v1_16_R3", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
+            // i think they repackaged NMS once??
+            .put("v_16_R3_Repackaged", new String[]{"net.minecraft.world.entity.npc.EntityVillager", "fj", "net.minecraft.world.entity.ai.gossip.Reputation", "a", "net.minecraft.world.entity.ai.gossip.ReputationType"})
             .put("v1_17_R1", new String[]{"net.minecraft.world.entity.npc.EntityVillager", "fS", "net.minecraft.world.entity.ai.gossip.Reputation", "a", "net.minecraft.world.entity.ai.gossip.ReputationType"})
             .build();
-    public static String mappingsVersion;
-
-    static {
-        Class<? extends Server> clazz = Bukkit.getServer().getClass();
-        // org.bukkit.craftbukkit.v1_16_R3.CraftServer
-        mappingsVersion = clazz.getName().split("\\.")[3];
-    }
 
     public static void loadMappings() {
         if (!MAPPINGS.containsKey(mappingsVersion)) {
-            BalancedVillagerTrades.LOGGER.warning("Version " + Bukkit.getVersion() + " (mappings: " + mappingsVersion + ") is not tested!");
-            BalancedVillagerTrades.LOGGER.warning("Some features may not work!");
-            guessMappings();
+            BalancedVillagerTrades.LOGGER.warning("Version " + Bukkit.getVersion() + " (mappings: " + mappingsVersion + ") is not supported!");
+            BalancedVillagerTrades.LOGGER.warning("Negative reputation when villagers are killed will not work.");
         } else {
             loadMappingsSupported();
-            if (NMSUtils.REPUTATION_ADD_REPUTATION != null)
+            if (NMSUtils.REPUTATION_ADD_REPUTATION != null) {
                 BalancedVillagerTrades.LOGGER.info("Loaded mappings for " + NMSUtils.mappingsVersion);
-            else
-                BalancedVillagerTrades.LOGGER.severe("Something went wrong!");
+            } else if ("v1_16_R3".equals(mappingsVersion)) {
+                mappingsVersion = "v_16_R3_Repackaged";
+                loadMappingsSupported();
+            } else {
+                BalancedVillagerTrades.LOGGER.severe("Something went wrong! (mappings: " + mappingsVersion + ")");
+            }
         }
     }
 
@@ -117,10 +123,6 @@ public class NMSUtils {
     public static Method REPUTATION_ADD_REPUTATION;
 
 
-    public static void guessMappings() {
-        // TODO guess mappings by method signature?
-    }
-
     public static void loadMappingsSupported() {
         String[] mappings = MAPPINGS.get(mappingsVersion);
         if (mappings == null) {
@@ -134,10 +136,10 @@ public class NMSUtils {
 //            DYNAMIC_OPS_NBT_INSTANCE = DYNAMIC_OPS_NBT_CLAZZ.getField(mappings[2]).get(null);
 //            REPUTATION_STORE = REPUTATION_CLAZZ.getMethod(mappings[3], DYNAMIC_OPS_CLAZZ);
             REPUTATION_CLAZZ = Class.forName(mappings[2]);
-            REPUTATION_CLAZZ = Class.forName(mappings[4]);
+            REPUTATION_TYPE_CLAZZ = Class.forName(mappings[4]);
             REPUTATION_ADD_REPUTATION = REPUTATION_CLAZZ.getMethod(mappings[3], UUID.class, REPUTATION_TYPE_CLAZZ, int.class);
         } catch (Exception e) {
-            e.printStackTrace();
+            BalancedVillagerTrades.LOGGER.severe(e.toString());
         }
     }
 }

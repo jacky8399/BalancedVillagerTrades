@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades;
 
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,6 +21,8 @@ public final class BalancedVillagerTrades extends JavaPlugin {
 
         saveDefaultConfig();
         reloadConfig();
+
+        new Metrics(this, 11784);
     }
 
     @Override
