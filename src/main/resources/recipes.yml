@@ -3,6 +3,7 @@
 bookshelves-exploit: # Name of the recipe
   # Description
   desc: Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
+  enabled: true
   when: # The predicate
     villager: profession = LIBRARIAN
     ingredient-0:
@@ -15,6 +16,7 @@ bookshelves-exploit: # Name of the recipe
 
 stick-trade:
   desc: Nerf the stick trades from fletcher
+  enabled: true
   when:
     villager: profession = fletcher
     ingredient-0:
@@ -27,6 +29,7 @@ stick-trade:
 
 diamond-item-trades:
   desc: Nerf diamond armor and tool trades
+  enabled: true
   when:
     villager: profession matches ^armorer|toolsmith$
     result:
@@ -36,12 +39,25 @@ diamond-item-trades:
     set:
       apply-discounts: false
 
-# remove-stone-trade:
-#   desc: Removes stone trades from masons
-#   when:
-#     villager: profession = mason
-#     ingredient-0:
-#       matches:
-#         - type = stone
-#   do:
-#     remove: true
+#remove-stone-trade:
+#  desc: Removes stone trades from masons
+#  enabled: true
+#  when:
+#    villager: profession = mason
+#    ingredient-0:
+#      matches:
+#        - type = stone
+#  do:
+#    remove: true
+#balance-clay:
+#  desc: Ensure that clay trades from masons require at least 32 clay balls
+#   enabled: true
+#  when:
+#    villager: profession = MASON
+#    ingredient-0:
+#      matches:
+#        - type = clay_ball
+#  do:
+#    set:
+#      ingredient-0: amount >= 32 # your custom amount
+#      apply-discounts: false

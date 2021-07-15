@@ -16,6 +16,7 @@ public class Recipe {
 
     public final String name;
     public String desc;
+    public boolean enabled = true;
     public Recipe(String name) {
         this.name = name;
     }
@@ -23,6 +24,11 @@ public class Recipe {
     @SuppressWarnings("unchecked")
     public void readFromMap(Map<String, Object> map) throws IllegalArgumentException {
         desc = String.valueOf(map.get("desc"));
+
+        Object enabled = map.get("enabled");
+        if (enabled instanceof Boolean) {
+            this.enabled = (Boolean) enabled;
+        }
 
         Object whenMap = map.get("when");
         if (whenMap == null) {
@@ -49,7 +55,7 @@ public class Recipe {
     }
 
     public boolean shouldHandle(TradeWrapper trade) {
-        return predicate.test(trade);
+        return enabled && predicate.test(trade);
     }
 
     public void handle(TradeWrapper trade) {

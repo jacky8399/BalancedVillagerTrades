@@ -9,6 +9,7 @@ import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -30,8 +31,11 @@ public abstract class ItemPredicate extends TradePredicate {
         this.simpleMatchers = ImmutableList.copyOf(simpleMatchers);
     }
 
+    @NotNull
     public final ItemStack stack;
+    @NotNull
     public final ImmutableSet<ComplexItemMatcher> matchers;
+    @NotNull
     public final ImmutableList<ItemMatcher> simpleMatchers;
 
     @Nullable
@@ -61,9 +65,11 @@ public abstract class ItemPredicate extends TradePredicate {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("Match against ").append(stack).append(" by:\n");
-        for (ComplexItemMatcher matcher : matchers) {
-            builder.append("- ").append(matcher.name).append('\n');
+        if (stack.getType() != Material.AIR) {
+            builder.append("Match against ").append(stack).append(" by:\n");
+            for (ComplexItemMatcher matcher : matchers) {
+                builder.append("- ").append(matcher.name).append('\n');
+            }
         }
         builder.append("Match by:\n");
         for (ItemMatcher matcher : simpleMatchers) {
