@@ -5,9 +5,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -124,8 +127,9 @@ public abstract class ItemPredicate extends TradePredicate {
     }
 
     private static final Pattern TYPE_REGEX = Pattern.compile("^type\\s*(=|matches)\\s*(.+)$");
-    private static final Pattern AMOUNT_REGEX = Pattern.compile("^(?:amount|count)\\s*(>|>=|<|<=|=|<>)\\s*(\\d+)$");
-    private static final Pattern AMOUNT_BETWEEN_REGEX = Pattern.compile("^(?:amount|count)\\s+between\\s+(\\d+)\\s+and\\s+(\\d+)$");
+    private static final Pattern AMOUNT_REGEX = Pattern.compile("^(?:amount|count)\\s*(.+)$");
+    private static final Pattern ENCHANTMENT_REGEX = Pattern.compile("^enchantments\\s+contains\\s+([A-Za-z_:]+)$");
+    private static final Pattern ENCHANTMENT_LEVEL_REGEX = Pattern.compile("^enchantments?\\s+([A-Za-z_:]+)\\s+(.+)$");
     /** lazy implementation */
     public static ItemMatcher getFromInput(String str) {
         String trimmed = str.trim();
@@ -153,21 +157,51 @@ public abstract class ItemPredicate extends TradePredicate {
             }
         } else if ((matcher = AMOUNT_REGEX.matcher(trimmed)).matches()) {
             String operator = matcher.group(1);
-            int operand = Integer.parseInt(matcher.group(2));
-            IntPredicate predicate = OperatorUtils.getPredicateFromOperator(operator, operand);
+            IntPredicate predicate;
+            try {
+                predicate = OperatorUtils.fromInput(operator);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid item matcher " + trimmed, ex);
+            }
             return new ItemMatcher(trimmed) {
                 @Override
                 public boolean test(ItemStack stack) {
                     return predicate.test(stack.getAmount());
                 }
             };
-        } else if ((matcher = AMOUNT_BETWEEN_REGEX.matcher(trimmed)).matches()) {
-            int i1 = Integer.parseInt(matcher.group(1)), i2 = Integer.parseInt(matcher.group(2));
-            int min = Math.min(i1, i2), max = Math.max(i1, i2);
+        } else if ((matcher = ENCHANTMENT_REGEX.matcher(trimmed)).matches()) {
+            Enchantment enchantment = Enchantment.getByKey(NamespacedKey.fromString(matcher.group(1)));
+            if (enchantment == null) {
+                throw new IllegalArgumentException("Invalid enchantment key " + matcher.group(1));
+            }
             return new ItemMatcher(trimmed) {
                 @Override
                 public boolean test(ItemStack stack) {
-                    return stack.getAmount() >= min && stack.getAmount() <= max;
+                    ItemMeta meta = stack.getItemMeta();
+                    return meta instanceof EnchantmentStorageMeta ?
+                            ((EnchantmentStorageMeta) meta).hasStoredEnchant(enchantment) :
+                            meta != null && meta.hasEnchant(enchantment);
+                }
+            };
+        } else if ((matcher = ENCHANTMENT_LEVEL_REGEX.matcher(trimmed)).matches()) {
+            Enchantment enchantment = Enchantment.getByKey(NamespacedKey.fromString(matcher.group(1)));
+            if (enchantment == null) {
+                throw new IllegalArgumentException("Invalid enchantment key " + matcher.group(1));
+            }
+            String operator = matcher.group(2);
+            IntPredicate predicate;
+            try {
+                predicate = OperatorUtils.fromInput(operator);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid item matcher " + trimmed, ex);
+            }
+            return new ItemMatcher(trimmed) {
+                @Override
+                public boolean test(ItemStack stack) {
+                    ItemMeta meta = stack.getItemMeta();
+                    return meta instanceof EnchantmentStorageMeta ?
+                            predicate.test(((EnchantmentStorageMeta) meta).getStoredEnchantLevel(enchantment)) :
+                            meta != null && predicate.test(meta.getEnchantLevel(enchantment));
                 }
             };
         }
