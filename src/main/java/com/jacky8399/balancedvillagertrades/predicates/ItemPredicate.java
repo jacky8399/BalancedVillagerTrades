@@ -128,7 +128,7 @@ public abstract class ItemPredicate extends TradePredicate {
 
     private static final Pattern TYPE_REGEX = Pattern.compile("^type\\s*(=|matches)\\s*(.+)$");
     private static final Pattern AMOUNT_REGEX = Pattern.compile("^(?:amount|count)\\s*(.+)$");
-    private static final Pattern ENCHANTMENT_REGEX = Pattern.compile("^enchantments\\s+contains\\s+([A-Za-z_:]+)$");
+    private static final Pattern ENCHANTMENT_REGEX = Pattern.compile("^enchantments?\\s+contains?\\s+([A-Za-z_:]+)$");
     private static final Pattern ENCHANTMENT_LEVEL_REGEX = Pattern.compile("^enchantments?\\s+([A-Za-z_:]+)\\s+(.+)$");
     /** lazy implementation */
     public static ItemMatcher getFromInput(String str) {
@@ -158,10 +158,9 @@ public abstract class ItemPredicate extends TradePredicate {
         } else if ((matcher = AMOUNT_REGEX.matcher(trimmed)).matches()) {
             String operator = matcher.group(1);
             IntPredicate predicate;
-            try {
-                predicate = OperatorUtils.fromInput(operator);
-            } catch (IllegalArgumentException ex) {
-                throw new IllegalArgumentException("Invalid item matcher " + trimmed, ex);
+            predicate = OperatorUtils.fromInput(operator);
+            if (predicate == null) {
+                throw new IllegalArgumentException("Invalid comparison statement " + operator);
             }
             return new ItemMatcher(trimmed) {
                 @Override
@@ -190,10 +189,9 @@ public abstract class ItemPredicate extends TradePredicate {
             }
             String operator = matcher.group(2);
             IntPredicate predicate;
-            try {
-                predicate = OperatorUtils.fromInput(operator);
-            } catch (IllegalArgumentException ex) {
-                throw new IllegalArgumentException("Invalid item matcher " + trimmed, ex);
+            predicate = OperatorUtils.fromInput(operator);
+            if (predicate == null) {
+                throw new IllegalArgumentException("Invalid comparison expression " + operator);
             }
             return new ItemMatcher(trimmed) {
                 @Override

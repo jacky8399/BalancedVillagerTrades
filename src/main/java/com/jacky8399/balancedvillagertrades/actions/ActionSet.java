@@ -1,7 +1,6 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.primitives.Ints;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.inventory.ItemStack;
@@ -10,9 +9,10 @@ import org.bukkit.inventory.MerchantRecipe;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.IntUnaryOperator;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class ActionSet<T> extends Action {
@@ -41,45 +41,43 @@ public class ActionSet<T> extends Action {
     public static List<ActionSet<?>> parse(Map<String, Object> map) {
         return (List<ActionSet<?>>) (List) // use rawtypes
                 map.entrySet().stream()
-                .map(entry -> {
-                    Field<?> field = FIELDS.get(entry.getKey());
-                    UnaryOperator<?> operator = getTransformer(field.clazz, entry.getValue().toString());
-                    return new ActionSet(entry.getKey() + " to " + entry.getValue().toString(),
-                            field, operator);
-                })
-                .collect(Collectors.toList());
+                        .map(entry -> {
+                            Field<?> field = FIELDS.get(entry.getKey());
+                            UnaryOperator<?> operator = getTransformer(field.clazz, entry.getValue().toString());
+                            return new ActionSet(entry.getKey() + " to " + entry.getValue().toString(),
+                                    field, operator);
+                        })
+                        .collect(Collectors.toList());
     }
 
-    private static final Pattern OPERATOR_PATTERN = Pattern.compile("^(>|>=|<|<=|=)\\s*?(\\d+)$");
-    private static final Pattern FIELD_OPERATOR_PATTERN = Pattern.compile("^(amount)\\s*?(>|>=|<|<=|=)\\s*?(\\d+)$");
     public static UnaryOperator<?> getTransformer(Class<?> clazz, String input) {
         String trimmed = input.trim();
         if (clazz == Boolean.class) {
             boolean bool = Boolean.parseBoolean(trimmed);
             return oldVal -> bool;
         } else if (clazz == Integer.class) {
-            Matcher operator = OPERATOR_PATTERN.matcher(trimmed);
-            if (operator.matches()) {
-                int num = Integer.parseInt(operator.group(2));
-                return oldInt -> OperatorUtils.getFunctionFromOperator(operator.group(1), ()->num);
-            } else {
-                int num = Integer.parseInt(trimmed);
-                return oldInt -> num;
-            }
-        } else if (clazz == ItemStack.class) {
-            Matcher operator = FIELD_OPERATOR_PATTERN.matcher(trimmed);
-            if (operator.matches()) {
-                Integer num = Ints.tryParse(operator.group(3));
-                if (num == null)
-                    throw new IllegalArgumentException(operator.group(3) + " is not a valid number");
-                IntUnaryOperator intOperator = OperatorUtils.getFunctionFromOperator(operator.group(2), ()->num);
-                if ("amount".equals(operator.group(1))) {
-                    return oldIs -> {
-                        ItemStack stack = ((ItemStack) oldIs).clone();
-                        stack.setAmount(intOperator.applyAsInt(stack.getAmount()));
-                        return stack;
-                    };
+            IntUnaryOperator func = OperatorUtils.getFunctionFromInput(trimmed);
+            if (func == null) {
+                try {
+                    int num = Integer.parseInt(trimmed);
+                    return oldInt -> num;
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid comparison expression or integer " + trimmed);
                 }
+            }
+            return (UnaryOperator<Integer>) func::applyAsInt;
+        } else if (clazz == ItemStack.class) {
+            if (trimmed.startsWith("amount")) {
+                String operatorStr = trimmed.substring(6).trim();
+                IntUnaryOperator intOperator = OperatorUtils.getFunctionFromInput(operatorStr);
+                if (intOperator == null) {
+                    throw new IllegalArgumentException("Invalid comparison expression " + trimmed);
+                }
+                return oldIs -> {
+                    ItemStack stack = ((ItemStack) oldIs).clone();
+                    stack.setAmount(intOperator.applyAsInt(stack.getAmount()));
+                    return stack;
+                };
             }
         }
         throw new IllegalArgumentException("Don't know how to handle " + input);

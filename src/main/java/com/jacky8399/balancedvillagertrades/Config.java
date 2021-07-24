@@ -51,11 +51,11 @@ public class Config {
                 Recipe recipe = new Recipe(name);
                 try {
                     recipe.readFromMap(entryMap);
+                    Recipe.RECIPES.put(name, recipe);
                 } catch (Exception e) {
                     logger.severe("Error while loading recipe " + name + ", skipping");
                     e.printStackTrace();
                 }
-                Recipe.RECIPES.put(name, recipe);
             }
             logger.info("Loaded " + Recipe.RECIPES.size() + " recipes");
         } catch (IOException e) {
