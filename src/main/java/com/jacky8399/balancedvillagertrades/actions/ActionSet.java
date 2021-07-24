@@ -1,53 +1,83 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
 import com.google.common.collect.ImmutableMap;
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntUnaryOperator;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class ActionSet<T> extends Action {
-    public final String fieldName;
-    public final Field<T> field;
-    public final UnaryOperator<T> transformer;
+@SuppressWarnings({"unchecked", "rawtypes"})
+public class ActionSet extends Action {
+    /** A description of the operation */
+    public final String desc;
+    public final Field field;
+    public final UnaryOperator transformer;
 
-    public ActionSet(String fieldName, Field<T> field, UnaryOperator<T> transformer) {
-        this.fieldName = fieldName;
+    public ActionSet(String desc, Field<TradeWrapper, ?> field, UnaryOperator<?> transformer) {
+        this.desc = desc;
         this.field = field;
         this.transformer = transformer;
     }
 
     @Override
     public void accept(TradeWrapper tradeWrapper) {
-        T newValue = transformer.apply(field.getter.apply(tradeWrapper));
+        Object newValue = transformer.apply(field.getter.apply(tradeWrapper));
         field.setter.accept(tradeWrapper, newValue);
     }
 
     @Override
     public String toString() {
-        return "Set " + fieldName;
+        return "Set " + desc;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static List<ActionSet<?>> parse(Map<String, Object> map) {
-        return (List<ActionSet<?>>) (List) // use rawtypes
-                map.entrySet().stream()
-                        .map(entry -> {
-                            Field<?> field = FIELDS.get(entry.getKey());
-                            UnaryOperator<?> operator = getTransformer(field.clazz, entry.getValue().toString());
-                            return new ActionSet(entry.getKey() + " to " + entry.getValue().toString(),
-                                    field, operator);
-                        })
-                        .collect(Collectors.toList());
+    public static List<ActionSet> parse(Map<String, Object> map) {
+        return map.entrySet().stream()
+                .flatMap(entry -> {
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    TradeField<?> field = FIELDS.get(key);
+                    if (field == null) {
+                        BalancedVillagerTrades.LOGGER.warning("Unknown field " + key + " in set, skipping.");
+                        return Stream.empty();
+                    }
+                    if (value instanceof Map) {
+                        if (field.clazz != ItemStack.class) // only item stacks can have inner fields
+                            return Stream.empty();
+                        Map<String, Object> innerMap = (Map<String, Object>) value;
+                        return innerMap.entrySet().stream()
+                                .map(innerEntry -> {
+                                    String innerKey = innerEntry.getKey();
+                                    String innerValue = innerEntry.getValue().toString();
+                                    ItemStackField<?> isField = ITEM_STACK_FIELDS.get(innerKey);
+                                    if (isField == null) {
+                                        BalancedVillagerTrades.LOGGER.warning("Unknown field " +
+                                                key + "." + innerKey + " in set, skipping.");
+                                        return null;
+                                    }
+                                    return new ActionSet(key + "." + innerKey + " to " + innerValue,
+                                            ((TradeField<ItemStack>) field).andThen(isField),
+                                            getTransformer(isField.clazz, innerValue));
+                                })
+                                .filter(Objects::nonNull);
+                    } else {
+                        UnaryOperator<?> operator = getTransformer(field.clazz, value.toString());
+                        return Stream.of(new ActionSet(key + " to " + value, field, operator));
+                    }
+                })
+                .collect(Collectors.toList());
     }
 
     public static UnaryOperator<?> getTransformer(Class<?> clazz, String input) {
@@ -55,6 +85,8 @@ public class ActionSet<T> extends Action {
         if (clazz == Boolean.class) {
             boolean bool = Boolean.parseBoolean(trimmed);
             return oldVal -> bool;
+        } else if (clazz == String.class) {
+            return oldVal -> trimmed;
         } else if (clazz == Integer.class) {
             IntUnaryOperator func = OperatorUtils.getFunctionFromInput(trimmed);
             if (func == null) {
@@ -83,34 +115,55 @@ public class ActionSet<T> extends Action {
         throw new IllegalArgumentException("Don't know how to handle " + input);
     }
 
-    public static class Field<T> {
-        public final Class<T> clazz;
-        public final Function<TradeWrapper, T> getter;
-        public final BiConsumer<TradeWrapper, T> setter;
-        public Field(Class<T> clazz, Function<TradeWrapper, T> getter, BiConsumer<TradeWrapper, T> setter) {
+    public static class Field<TOwner, TField> {
+        public final Class<TField> clazz;
+        public final Function<TOwner, TField> getter;
+        public final BiConsumer<TOwner, TField> setter;
+
+        public Field(Class<TField> clazz, Function<TOwner, TField> getter, BiConsumer<TOwner, TField> setter) {
             this.clazz = clazz;
             this.getter = getter;
             this.setter = setter;
         }
+
+        public <TInner> Field<TOwner, TInner> andThen(Field<TField, TInner> field) {
+            return new Field<TOwner, TInner>(field.clazz, getter.andThen(field.getter), (owner, newVal) -> {
+                TField instance = getter.apply(owner);
+                field.setter.accept(instance, newVal);
+                setter.accept(owner, instance);
+            });
+        }
     }
 
-    public static final ImmutableMap<String, Field<?>> FIELDS = ImmutableMap.<String, Field<?>>builder()
-            .put("apply-discounts", new Field<>(Boolean.class,
+    public static class TradeField<T> extends Field<TradeWrapper, T> {
+        public TradeField(Class<T> clazz, Function<TradeWrapper, T> getter, BiConsumer<TradeWrapper, T> setter) {
+            super(clazz, getter, setter);
+        }
+    }
+
+    public static class ItemStackField<T> extends Field<ItemStack, T> {
+        public ItemStackField(Class<T> clazz, Function<ItemStack, T> getter, BiConsumer<ItemStack, T> setter) {
+            super(clazz, getter, setter);
+        }
+    }
+
+    public static final ImmutableMap<String, TradeField<?>> FIELDS = ImmutableMap.<String, TradeField<?>>builder()
+            .put("apply-discounts", new TradeField<>(Boolean.class,
                     trade -> trade.getRecipe().getPriceMultiplier() != 0,
                     (trade, bool) -> trade.getRecipe().setPriceMultiplier(bool ? 1 : 0)))
-            .put("max-uses", new Field<>(Integer.class,
+            .put("max-uses", new TradeField<>(Integer.class,
                     trade -> trade.getRecipe().getMaxUses(),
                     (trade, maxUses) -> trade.getRecipe().setMaxUses(maxUses)))
-            .put("uses", new Field<>(Integer.class,
+            .put("uses", new TradeField<>(Integer.class,
                     trade -> trade.getRecipe().getUses(),
                     (trade, maxUses) -> trade.getRecipe().setUses(maxUses)))
-            .put("ingredient-0", new Field<>(ItemStack.class,
+            .put("ingredient-0", new TradeField<>(ItemStack.class,
                     trade -> trade.getRecipe().getIngredients().get(0),
                     (trade, stack) -> setIngredient(0, trade, stack)))
-            .put("ingredient-1", new Field<>(ItemStack.class,
+            .put("ingredient-1", new TradeField<>(ItemStack.class,
                     trade -> trade.getRecipe().getIngredients().get(1),
                     (trade, stack) -> setIngredient(1, trade, stack)))
-            .put("result", new Field<>(ItemStack.class,
+            .put("result", new TradeField<>(ItemStack.class,
                     trade -> trade.getRecipe().getResult(),
                     (trade, stack) -> {
                         MerchantRecipe oldRecipe = trade.getRecipe();
@@ -121,6 +174,16 @@ public class ActionSet<T> extends Action {
                         newRecipe.setIngredients(oldRecipe.getIngredients());
                         trade.setRecipe(newRecipe);
                     }))
+            .build();
+
+    public static final ImmutableMap<String, ItemStackField<?>> ITEM_STACK_FIELDS = ImmutableMap.<String, ItemStackField<?>>builder()
+            .put("amount", new ItemStackField<>(Integer.class,
+                    ItemStack::getAmount,
+                    ItemStack::setAmount))
+            .put("type", new ItemStackField<>(String.class,
+                    is -> is.getType().getKey().toString(),
+                    (is, newType) -> is.setType(Objects.requireNonNull(Material.matchMaterial(newType)))))
+
             .build();
 
     private static void setIngredient(int index, TradeWrapper trade, final ItemStack stack) {
