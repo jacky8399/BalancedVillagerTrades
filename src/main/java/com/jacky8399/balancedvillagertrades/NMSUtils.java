@@ -46,6 +46,7 @@ public class NMSUtils {
                 loadMappingsSupported();
             } else {
                 BalancedVillagerTrades.LOGGER.severe("Something went wrong! (mappings: " + mappingsVersion + ")");
+                BalancedVillagerTrades.LOGGER.warning("Negative reputation when villagers are killed will not work.");
             }
         }
     }
