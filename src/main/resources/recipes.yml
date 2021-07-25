@@ -1,5 +1,7 @@
 # For more information:
 # https://github.com/jacky8399/BalancedVillagerTrades/wiki
+# Examples I made:
+# https://github.com/jacky8399/BalancedVillagerTrades/wiki/Examples
 bookshelves-exploit: # Name of the recipe
   # Description
   desc: Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
@@ -39,6 +41,7 @@ diamond-item-trades:
     set:
       apply-discounts: false
 
+
 #remove-stone-trade:
 #  desc: Removes stone trades from masons
 #  enabled: true
@@ -59,5 +62,6 @@ diamond-item-trades:
 #        - type = clay_ball
 #  do:
 #    set:
-#      ingredient-0: amount >= 32 # your custom amount
+#      ingredient-0:
+#        amount: '>= 32'
 #      apply-discounts: false

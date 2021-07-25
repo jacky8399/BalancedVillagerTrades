@@ -9,8 +9,10 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -122,6 +124,7 @@ public class ActionSet extends Action {
             this.setter = setter;
         }
 
+        @Contract("!null -> !null")
         @Nullable
         public <TInner> Field<TOwner, TInner> andThen(Field<TField, TInner> field) {
             if (field == null)
@@ -160,46 +163,47 @@ public class ActionSet extends Action {
             super(ItemStack.class, getter, setter);
         }
 
-        private static final ComplexField<ItemStack, Map<Enchantment, Integer>> ENCHANTMENT_FIELD =
-                new ComplexField<ItemStack, Map<Enchantment, Integer>>((Class) Map.class, // horrible
-                        is -> {
-                            ItemMeta meta = is.getItemMeta();
-                            return new HashMap<>(meta instanceof EnchantmentStorageMeta ?
-                                    ((EnchantmentStorageMeta) meta).getStoredEnchants() :
-                                    meta.getEnchants());
-                        },
-                        (is, newMap) -> {
-                            ItemMeta meta = is.getItemMeta();
-                            boolean isEnchantedBook = meta instanceof EnchantmentStorageMeta;
-                            // remove enchantments
-                            Map<Enchantment, Integer> oldEnch = isEnchantedBook ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
-                            if (!oldEnch.keySet().equals(newMap.keySet())) {
-                                Set<Enchantment> oldEnchSet = new HashSet<>(oldEnch.keySet());
-                                oldEnchSet.removeAll(newMap.keySet());
-                                oldEnchSet.forEach(isEnchantedBook ? ((EnchantmentStorageMeta) meta)::removeStoredEnchant : meta::removeEnchant);
+        // I'm lazy
+        private static final Field<ItemStack, ItemMeta> META_FIELD = new Field<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta);
+
+        private static final Field<ItemStack, Map<Enchantment, Integer>> ENCHANTMENT_FIELD =
+                META_FIELD.andThen(
+                        new ComplexField<ItemMeta, Map<Enchantment, Integer>>((Class) Map.class, // horrible
+                                meta -> new HashMap<>(
+                                        meta instanceof EnchantmentStorageMeta ?
+                                                ((EnchantmentStorageMeta) meta).getStoredEnchants() :
+                                                meta.getEnchants()
+                                ),
+                                (meta, newMap) -> {
+                                    boolean isEnchantedBook = meta instanceof EnchantmentStorageMeta;
+                                    // remove enchantments
+                                    Map<Enchantment, Integer> oldEnch = isEnchantedBook ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
+                                    if (!oldEnch.keySet().equals(newMap.keySet())) {
+                                        Set<Enchantment> oldEnchSet = new HashSet<>(oldEnch.keySet());
+                                        oldEnchSet.removeAll(newMap.keySet());
+                                        oldEnchSet.forEach(isEnchantedBook ? ((EnchantmentStorageMeta) meta)::removeStoredEnchant : meta::removeEnchant);
+                                    }
+                                    newMap.forEach((ench, lvl) -> {
+                                        if (isEnchantedBook)
+                                            ((EnchantmentStorageMeta) meta).addStoredEnchant(ench, lvl, true);
+                                        else
+                                            meta.addEnchant(ench, lvl, true);
+                                    });
+                                }) {
+                            @Override
+                            public @Nullable Field<Map<Enchantment, Integer>, Integer> getField(String fieldName) {
+                                Enchantment enchantment = Enchantment.getByKey(NamespacedKey.fromString(fieldName));
+                                return enchantment != null ? new Field<>(Integer.class,
+                                        map -> map.getOrDefault(enchantment, 0),
+                                        (map, lvl) -> {
+                                            if (lvl <= 0)
+                                                map.remove(enchantment);
+                                            else
+                                                map.put(enchantment, lvl);
+                                        }
+                                ) : null;
                             }
-                            newMap.forEach((ench, lvl) -> {
-                                if (isEnchantedBook)
-                                    ((EnchantmentStorageMeta) meta).addStoredEnchant(ench, lvl, true);
-                                else
-                                    meta.addEnchant(ench, lvl, true);
-                            });
-                            is.setItemMeta(meta);
-                        }) {
-                    @Override
-                    public @Nullable Field<Map<Enchantment, Integer>, Integer> getField(String fieldName) {
-                        Enchantment enchantment = Enchantment.getByKey(NamespacedKey.fromString(fieldName));
-                        return enchantment != null ? new Field<>(Integer.class,
-                                map -> map.getOrDefault(enchantment, 0),
-                                (map, lvl) -> {
-                                    if (lvl <= 0)
-                                        map.remove(enchantment);
-                                    else
-                                        map.put(enchantment, lvl);
-                                }
-                        ) : null;
-                    }
-                };
+                        });
 
         public static final ImmutableMap<String, Field<ItemStack, ?>> ITEM_STACK_FIELDS = ImmutableMap.<String, Field<ItemStack, ?>>builder()
                 .put("amount", new Field<>(Integer.class,
@@ -208,8 +212,17 @@ public class ActionSet extends Action {
                 .put("type", new Field<>(String.class,
                         is -> is.getType().getKey().toString(),
                         (is, newType) -> is.setType(Objects.requireNonNull(Material.matchMaterial(newType)))))
-                .put("enchants", ENCHANTMENT_FIELD)
                 .put("enchantments", ENCHANTMENT_FIELD)
+                .put("damage", META_FIELD.andThen(new Field<>(Integer.class,
+                        meta -> meta instanceof Damageable ? ((Damageable) meta).getDamage() : 0,
+                        (meta, damage) -> {
+                            if (meta instanceof Damageable)
+                                ((Damageable) meta).setDamage(damage);
+                        })))
+                .put("name", META_FIELD.andThen(new Field<>(String.class,
+                        ItemMeta::getDisplayName, ItemMeta::setDisplayName)))
+                .put("unbreakable", META_FIELD.andThen(new Field<>(Boolean.class,
+                        ItemMeta::isUnbreakable, ItemMeta::setUnbreakable)))
                 .build();
 
         @Override
@@ -228,6 +241,12 @@ public class ActionSet extends Action {
             .put("uses", new Field<>(Integer.class,
                     trade -> trade.getRecipe().getUses(),
                     (trade, maxUses) -> trade.getRecipe().setUses(maxUses)))
+            .put("award-experience", new Field<>(Boolean.class,
+                    trade -> trade.getRecipe().hasExperienceReward(),
+                    (trade, awardXP) -> trade.getRecipe().setExperienceReward(awardXP)))
+            .put("villager-experience", new Field<>(Integer.class,
+                    trade -> trade.getRecipe().getVillagerExperience(),
+                    (trade, villagerXP) -> trade.getRecipe().setVillagerExperience(villagerXP)))
             .put("ingredient-0", new ItemStackField<>(
                     trade -> trade.getRecipe().getIngredients().get(0),
                     (trade, stack) -> setIngredient(0, trade, stack)))

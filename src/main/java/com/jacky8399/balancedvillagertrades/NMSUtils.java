@@ -30,7 +30,7 @@ public class NMSUtils {
             .put("v1_16_R3", new String[]{NMS_PACKAGE + "EntityVillager", "fj", NMS_PACKAGE + "Reputation", "a", NMS_PACKAGE + "ReputationType"})
             // i think they repackaged NMS once??
             .put("v_16_R3_Repackaged", new String[]{"net.minecraft.world.entity.npc.EntityVillager", "fj", "net.minecraft.world.entity.ai.gossip.Reputation", "a", "net.minecraft.world.entity.ai.gossip.ReputationType"})
-            .put("v1_17_R1", new String[]{"net.minecraft.world.entity.npc.EntityVillager", "fS", "net.minecraft.world.entity.ai.gossip.Reputation", "a", "net.minecraft.world.entity.ai.gossip.ReputationType"})
+            .put("v1_17_R1", new String[]{"net.minecraft.world.entity.npc.EntityVillager", null, "net.minecraft.world.entity.ai.gossip.Reputation", "a", "net.minecraft.world.entity.ai.gossip.ReputationType"})
             .build();
 
     public static void loadMappings() {
@@ -133,10 +133,20 @@ public class NMSUtils {
         try {
 //            ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS = ENTITY_ZOMBIE_VILLAGER_CLAZZ.getMethod(mappings[0], NBT_BASE_CLAZZ);
             ENTITY_VILLAGER_CLAZZ = Class.forName(mappings[0]);
-            ENTITY_VILLAGER_GET_GOSSIPS = ENTITY_VILLAGER_CLAZZ.getMethod(mappings[1]);
+            REPUTATION_CLAZZ = Class.forName(mappings[2]);
+            if (mappings[1] != null) {
+                ENTITY_VILLAGER_GET_GOSSIPS = ENTITY_VILLAGER_CLAZZ.getMethod(mappings[1]);
+            } else { // to work around 1.17 perhaps
+                for (Method method : ENTITY_VILLAGER_CLAZZ.getMethods()) {
+                    if (method.getReturnType() == REPUTATION_CLAZZ) {
+                        ENTITY_VILLAGER_GET_GOSSIPS = method;
+                    }
+                }
+                if (ENTITY_VILLAGER_GET_GOSSIPS == null)
+                    throw new IllegalStateException("Can't get reputation");
+            }
 //            DYNAMIC_OPS_NBT_INSTANCE = DYNAMIC_OPS_NBT_CLAZZ.getField(mappings[2]).get(null);
 //            REPUTATION_STORE = REPUTATION_CLAZZ.getMethod(mappings[3], DYNAMIC_OPS_CLAZZ);
-            REPUTATION_CLAZZ = Class.forName(mappings[2]);
             REPUTATION_TYPE_CLAZZ = Class.forName(mappings[4]);
             REPUTATION_ADD_REPUTATION = REPUTATION_CLAZZ.getMethod(mappings[3], UUID.class, REPUTATION_TYPE_CLAZZ, int.class);
         } catch (Exception e) {
