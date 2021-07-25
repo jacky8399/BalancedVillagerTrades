@@ -32,6 +32,7 @@ public class Config {
     }
 
     public static void parseRecipes() {
+        Recipe.RECIPES.clear();
         BalancedVillagerTrades plugin = BalancedVillagerTrades.INSTANCE;
         Logger logger = plugin.getLogger();
         File recipesFile = new File(plugin.getDataFolder(), "recipes.yml");

@@ -16,7 +16,8 @@ public class CommandBvt implements TabExecutor {
         if (args.length >= 1) {
             if (args[0].equalsIgnoreCase("reload")) {
                 BalancedVillagerTrades.INSTANCE.reloadConfig();
-                sender.sendMessage(ChatColor.GREEN + "Configuration reloaded!");
+                sender.sendMessage(ChatColor.GREEN + "Configuration and recipes reloaded!");
+                sender.sendMessage(ChatColor.GREEN + "Loaded " + Recipe.RECIPES.size() + " recipes.");
                 return true;
             } else if (args[0].equalsIgnoreCase("recipes")) {
                 sender.sendMessage(ChatColor.AQUA + "Recipes: (do /bvt recipe <recipe> info for more info)");
