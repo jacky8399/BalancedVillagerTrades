@@ -17,12 +17,17 @@ public class Field<TOwner, TField> {
         this.setter = setter;
     }
 
+    public static <TOwner, TField> Field<TOwner, TField> readOnlyField(Class<TField> clazz, Function<TOwner, TField> getter) {
+        return new Field<>(clazz, getter, null);
+    }
+
     public TField get(TOwner owner) {
-        return this.getter.apply(owner);
+        return getter.apply(owner);
     }
 
     public void set(TOwner owner, TField value) {
-        this.setter.accept(owner, value);
+        if (setter != null)
+            setter.accept(owner, value);
     }
 
     @Contract("!null -> !null")
@@ -31,11 +36,11 @@ public class Field<TOwner, TField> {
         if (field == null)
             return null;
         Function<TOwner, TInner> newGetter = getter.andThen(field.getter);
-        BiConsumer<TOwner, TInner> newSetter = (owner, newVal) -> {
+        BiConsumer<TOwner, TInner> newSetter = field.setter != null ? (owner, newVal) -> {
             TField instance = get(owner);
             field.set(instance, newVal);
             set(owner, instance);
-        };
+        } : null;
         return field instanceof ComplexField ? new ComplexField<TOwner, TInner>(field.clazz, newGetter, newSetter) {
             @Override
             public @Nullable Field<TInner, ?> getField(String fieldName) {

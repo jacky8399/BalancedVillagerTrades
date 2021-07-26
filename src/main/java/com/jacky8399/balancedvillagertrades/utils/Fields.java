@@ -1,6 +1,7 @@
 package com.jacky8399.balancedvillagertrades.utils;
 
 import com.google.common.collect.ImmutableMap;
+import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +44,19 @@ public class Fields {
                         newRecipe.setIngredients(oldRecipe.getIngredients());
                         trade.setRecipe(newRecipe);
                     }))
+            .put("villager", new ComplexField<TradeWrapper, Villager>(Villager.class,
+                    TradeWrapper::getVillager, (trade, villager)->{}) {
+                private final ImmutableMap<String, Field<Villager, ?>> FIELDS = ImmutableMap.<String, Field<Villager, ?>>builder()
+                        .put("type", Field.readOnlyField(String.class, villager -> villager.getVillagerType().name()))
+                        .put("profession", Field.readOnlyField(String.class, villager -> villager.getProfession().name()))
+                        .put("level", Field.readOnlyField(Integer.class, Villager::getVillagerLevel))
+                        .put("experience", Field.readOnlyField(Integer.class, Villager::getVillagerExperience))
+                        .build();
+                @Override
+                public @Nullable Field<Villager, ?> getField(String fieldName) {
+                    return FIELDS.get(fieldName);
+                }
+            })
             .build();
 
     @NotNull
@@ -55,20 +69,19 @@ public class Fields {
         }
         String[] paths = path.split("\\.");
         Field<TradeWrapper, ?> field = root;
-        StringBuilder pathName = new StringBuilder("root.");
+        StringBuilder pathName = new StringBuilder("root");
         for (String child : paths) {
             if (field == null) {
                 field = FIELDS.get(child);
-                pathName.append(child);
             } else if (field instanceof ComplexField) {
                 field = ((ComplexField<TradeWrapper, ?>) field).getFieldWrapped(child);
-                pathName.append('.').append(child);
             } else {
                 throw new IllegalArgumentException("Can't access " + path + " because " + pathName + " does not have fields");
             }
             if (field == null) {
                 throw new IllegalArgumentException(pathName + " does not have field " + child);
             }
+            pathName.append('.').append(child);
         }
         if (field == null) {
             throw new IllegalArgumentException(pathName + " does not have field " + path);

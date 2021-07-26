@@ -20,7 +20,7 @@ public class MapField<T, K, V> extends ComplexField<T, Map<K, V>> {
         return keyTranslator.apply(key);
     }
 
-    private static final Field<Map<?, ?>, Integer> SIZE_FIELD = new Field<>(Integer.class, Map::size, (map, newSize)->{});
+    private static final Field<Map<?, ?>, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, Map::size);
     @Override
     public @Nullable Field<Map<K, V>, ?> getField(String fieldName) {
         if ("size".equals(fieldName))

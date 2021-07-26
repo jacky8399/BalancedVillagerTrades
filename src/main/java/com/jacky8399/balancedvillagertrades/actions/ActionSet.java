@@ -58,6 +58,9 @@ public class ActionSet extends Action {
                         Map<String, Object> innerMap = (Map<String, Object>) value;
                         return parse((ComplexField<TradeWrapper, ?>) field, fieldName, innerMap);
                     } else {
+                        if (field.setter == null) {
+                            BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " is read-only! Assigning new values to it will have no effect.");
+                        }
                         UnaryOperator<?> operator = getTransformer(field.clazz, value.toString());
                         return Stream.of(new ActionSet(fieldName + " to " + value, field, operator));
                     }
