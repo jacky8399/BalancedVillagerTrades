@@ -51,7 +51,7 @@ public class Recipe {
         } else if (!(doMap instanceof Map)) {
             throw new IllegalArgumentException("Expected map at 'do' section");
         }
-        actions = Action.getFromMap((Map<String, Object>) doMap);
+        actions = Action.getFromMap(name, (Map<String, Object>) doMap);
     }
 
     public boolean shouldHandle(TradeWrapper trade) {

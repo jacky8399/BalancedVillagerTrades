@@ -9,6 +9,7 @@ import java.util.function.Function;
 public class Field<TOwner, TField> {
     public final Class<TField> clazz;
     public final Function<TOwner, TField> getter;
+    @Nullable
     public final BiConsumer<TOwner, TField> setter;
 
     public Field(Class<TField> clazz, Function<TOwner, TField> getter, BiConsumer<TOwner, TField> setter) {

@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 public abstract class Action implements Consumer<TradeWrapper> {
     @SuppressWarnings("unchecked")
-    public static List<? extends Action> getFromMap(Map<String, Object> map) throws IllegalArgumentException {
+    public static List<? extends Action> getFromMap(String name, Map<String, Object> map) throws IllegalArgumentException {
         Object setMap = map.get("set");
         if (setMap != null) {
             if (!(setMap instanceof Map))
@@ -21,6 +21,12 @@ public abstract class Action implements Consumer<TradeWrapper> {
             if (!(removeBool instanceof Boolean))
                 throw new IllegalArgumentException("Expected boolean at 'remove' section");
             return Collections.singletonList(new ActionRemove((Boolean) removeBool));
+        }
+        Object echoList = map.get("echo");
+        if (echoList != null) {
+            if (!(echoList instanceof List))
+                throw new IllegalArgumentException("Expected list at 'echo' section");
+            return Collections.singletonList(ActionEcho.parse(name, (List<?>) echoList));
         }
         throw new IllegalArgumentException("Empty action");
     }

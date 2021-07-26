@@ -74,4 +74,9 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
     public @Nullable Field<ItemStack, ?> getField(String fieldName) {
         return ITEM_STACK_FIELDS.get(fieldName);
     }
+
+    @Override
+    public @Nullable Collection<String> getFields(T t) {
+        return ITEM_STACK_FIELDS.keySet();
+    }
 }
