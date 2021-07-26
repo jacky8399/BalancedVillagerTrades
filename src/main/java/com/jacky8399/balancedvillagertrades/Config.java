@@ -41,6 +41,10 @@ public class Config {
         try (FileInputStream stream = new FileInputStream(recipesFile);
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             Map<String, Object> map = (new Yaml()).load(reader);
+            if (map == null) {
+                logger.info("Loaded 0 recipes");
+                return;
+            }
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 String name = entry.getKey();
                 Object obj = entry.getValue();

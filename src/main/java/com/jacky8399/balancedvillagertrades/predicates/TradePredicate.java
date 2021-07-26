@@ -76,14 +76,19 @@ public abstract class TradePredicate implements BiPredicate<Villager, MerchantRe
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException("An exception occurred inside " + str, e);
                 }
-            }
-            Function<Object, TradePredicate> constructor = CONSTRUCTORS.get(str);
-            if (constructor == null)
-                throw new IllegalArgumentException("Don't know how to match " + str);
-            try {
-                predicates.add(constructor.apply(val));
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("An exception occurred inside " + str, e);
+            } else if (str.equalsIgnoreCase("fields")) {
+                if (!(val instanceof Map<?, ?>))
+                    throw new IllegalArgumentException("Expected a map inside " + str);
+                predicates.addAll(FieldPredicate.parse((Map<String, Object>) val));
+            } else {
+                Function<Object, TradePredicate> constructor = CONSTRUCTORS.get(str);
+                if (constructor == null)
+                    throw new IllegalArgumentException("Don't know how to match " + str);
+                try {
+                    predicates.add(constructor.apply(val));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("An exception occurred inside " + str, e);
+                }
             }
         }
         if (predicates.size() == 1)
