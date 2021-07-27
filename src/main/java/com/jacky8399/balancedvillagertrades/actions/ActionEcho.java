@@ -1,6 +1,5 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
@@ -13,7 +12,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ActionEcho extends Action {
     public final String recipeName;
@@ -21,6 +19,11 @@ public class ActionEcho extends Action {
     public ActionEcho(String name, Map<String, Field<TradeWrapper, ?>> fields) {
         this.recipeName = name;
         this.fields = ImmutableMap.copyOf(fields);
+    }
+
+    @Override
+    public String toString() {
+        return "Echo fields " + String.join(", ", fields.keySet());
     }
 
     public static ActionEcho parse(String name, List<?> list) {
@@ -44,7 +47,7 @@ public class ActionEcho extends Action {
         BalancedVillagerTrades.LOGGER.info("Echo from recipe " + recipeName);
         fields.forEach((fieldName, field) -> {
             Object value = field.get(tradeWrapper);
-            BalancedVillagerTrades.LOGGER.info("  " + fieldName + " : " + value);
+            BalancedVillagerTrades.LOGGER.info("  " + fieldName + ": " + value);
             if (field instanceof ComplexField) {
                 Collection<String> children = ((ComplexField<TradeWrapper, ?>) field).getFields(tradeWrapper);
                 if (children != null)

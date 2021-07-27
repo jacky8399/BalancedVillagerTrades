@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class Fields {
@@ -55,6 +56,11 @@ public class Fields {
                 @Override
                 public @Nullable Field<Villager, ?> getField(String fieldName) {
                     return FIELDS.get(fieldName);
+                }
+
+                @Override
+                public @Nullable Collection<String> getFields(TradeWrapper tradeWrapper) {
+                    return FIELDS.keySet();
                 }
             })
             .build();
