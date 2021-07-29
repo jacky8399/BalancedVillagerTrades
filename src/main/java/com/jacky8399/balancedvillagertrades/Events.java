@@ -1,6 +1,7 @@
 package com.jacky8399.balancedvillagertrades;
 
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import com.jacky8399.balancedvillagertrades.utils.reputation.ReputationProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -99,7 +100,7 @@ public class Events implements Listener {
         if (Config.nerfNegativeReputationOnKilled &&
                 e.getTransformReason() == EntityTransformEvent.TransformReason.INFECTION) {
             // check if mappings is loaded
-            if (NMSUtils.REPUTATION_ADD_REPUTATION == null)
+            if (BalancedVillagerTrades.REPUTATION == null)
                 return;
             Villager villager = (Villager) e.getEntity();
             // find players in radius
@@ -107,9 +108,9 @@ public class Events implements Listener {
                 if (player.getWorld() == villager.getWorld() && player.getLocation()
                         .distance(villager.getLocation()) <= Config.nerfNegativeReputationOnKilledRadius) {
                     // add gossips
-                    NMSUtils.addGossip(villager, player.getUniqueId(),
+                    BalancedVillagerTrades.REPUTATION.addGossip(villager, player.getUniqueId(),
                             // major positives are permanent
-                            NMSUtils.ReputationTypeWrapped.MAJOR_NEGATIVE, Config.nerfNegativeReputationOnKilledReputationPenalty
+                            ReputationProvider.ReputationTypeWrapped.MAJOR_NEGATIVE, Config.nerfNegativeReputationOnKilledReputationPenalty
                     );
                     // show angry particles
                     player.spawnParticle(Particle.VILLAGER_ANGRY, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);

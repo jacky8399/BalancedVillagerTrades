@@ -1,4 +1,4 @@
-package com.jacky8399.balancedvillagertrades.utils;
+package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import org.jetbrains.annotations.Nullable;
 

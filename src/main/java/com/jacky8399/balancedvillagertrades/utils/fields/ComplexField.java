@@ -1,9 +1,8 @@
-package com.jacky8399.balancedvillagertrades.utils;
+package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 

@@ -1,6 +1,7 @@
-package com.jacky8399.balancedvillagertrades.utils;
+package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import com.google.common.collect.ImmutableMap;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;

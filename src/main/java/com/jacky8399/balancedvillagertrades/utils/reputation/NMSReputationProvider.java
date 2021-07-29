@@ -1,16 +1,38 @@
-package com.jacky8399.balancedvillagertrades;
+package com.jacky8399.balancedvillagertrades.utils.reputation;
 
 import com.google.common.collect.ImmutableMap;
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.entity.Villager;
 
 import java.lang.reflect.Method;
+import java.util.EnumMap;
 import java.util.UUID;
 
 // wow what a mess
-public class NMSUtils {
+public class NMSReputationProvider extends ReputationProvider {
     public static String mappingsVersion;
+
+    public NMSReputationProvider() {
+        if (!MAPPINGS.containsKey(mappingsVersion)) {
+            BalancedVillagerTrades.LOGGER.warning("Spigot version " + Bukkit.getVersion() + " (mappings: " + mappingsVersion + ") is not supported!");
+            BalancedVillagerTrades.LOGGER.warning("Negative reputation when villagers are killed will not work.");
+            BalancedVillagerTrades.LOGGER.warning("To ensure this feature works across versions, please consider using Paper.");
+        } else {
+            loadMappingsSupported();
+            if (REPUTATION_ADD_REPUTATION != null) {
+                BalancedVillagerTrades.LOGGER.info("Loaded Spigot mappings for " + NMSReputationProvider.mappingsVersion);
+            } else if ("v1_16_R3".equals(mappingsVersion)) {
+                mappingsVersion = "v_16_R3_Repackaged";
+                loadMappingsSupported();
+            } else {
+                BalancedVillagerTrades.LOGGER.severe("Something went wrong! (Spigot mappings: " + mappingsVersion + ")");
+                BalancedVillagerTrades.LOGGER.warning("Negative reputation when villagers are killed will not work.");
+                BalancedVillagerTrades.LOGGER.warning("To ensure this feature works across versions, please consider using Paper.");
+            }
+        }
+    }
 
     static {
         Class<? extends Server> clazz = Bukkit.getServer().getClass();
@@ -34,21 +56,13 @@ public class NMSUtils {
             .build();
 
     public static void loadMappings() {
-        if (!MAPPINGS.containsKey(mappingsVersion)) {
-            BalancedVillagerTrades.LOGGER.warning("Version " + Bukkit.getVersion() + " (mappings: " + mappingsVersion + ") is not supported!");
-            BalancedVillagerTrades.LOGGER.warning("Negative reputation when villagers are killed will not work.");
-        } else {
-            loadMappingsSupported();
-            if (NMSUtils.REPUTATION_ADD_REPUTATION != null) {
-                BalancedVillagerTrades.LOGGER.info("Loaded mappings for " + NMSUtils.mappingsVersion);
-            } else if ("v1_16_R3".equals(mappingsVersion)) {
-                mappingsVersion = "v_16_R3_Repackaged";
-                loadMappingsSupported();
-            } else {
-                BalancedVillagerTrades.LOGGER.severe("Something went wrong! (mappings: " + mappingsVersion + ")");
-                BalancedVillagerTrades.LOGGER.warning("Negative reputation when villagers are killed will not work.");
-            }
+        try {
+            Class.forName("com.destroystokyo.paper.entity.villager.Reputation");
+            BalancedVillagerTrades.REPUTATION = new PaperReputationProvider();
+        } catch (ClassNotFoundException ignored) {
+            BalancedVillagerTrades.REPUTATION = new NMSReputationProvider();
         }
+
     }
 
     //    public static void copyGossipsFrom(ZombieVillager zombieVillager, Object gossips) {
@@ -60,14 +74,16 @@ public class NMSUtils {
 //        } catch (Exception ignored) {}
 //    }
 
-    public static void addGossip(Villager villager, UUID uuid, ReputationTypeWrapped reputationType, int amount) {
+    private static final EnumMap<ReputationTypeWrapped, Object> NMS_REPUTATION_TYPES = new EnumMap<>(ReputationTypeWrapped.class);
+
+    public void addGossip(Villager villager, UUID uuid, ReputationTypeWrapped reputationType, int amount) {
         try {
             Object gossips = getGossips(villager);
-            REPUTATION_ADD_REPUTATION.invoke(gossips, uuid, reputationType.nmsCopy, amount);
+            REPUTATION_ADD_REPUTATION.invoke(gossips, uuid, NMS_REPUTATION_TYPES.get(reputationType), amount);
         } catch (Exception ignored) {}
     }
 
-    private static Object getGossips(Villager villager) {
+    private Object getGossips(Villager villager) {
         Object nms = getHandle(villager);
         try {
             return ENTITY_VILLAGER_GET_GOSSIPS.invoke(nms);
@@ -84,47 +100,18 @@ public class NMSUtils {
         }
     }
 
-    // utilities
-//    public static Class<?> NBT_BASE_CLAZZ = getNMSClazz("NBTBase");
-//    public static Class<?> DYNAMIC_CLAZZ; // what the hell is a dynamic
-//    public static Method DYNAMIC_GET_VALUE;
-//    public static Class<?> DYNAMIC_OPS_CLAZZ;
-//    public static Class<?> DYNAMIC_OPS_NBT_CLAZZ = getNMSClazz("DynamicOpsNBT");
-//    public static Object DYNAMIC_OPS_NBT_INSTANCE;
-
-//    static {
-//        try {
-//            DYNAMIC_CLAZZ = Class.forName("com.mojang.serialization.Dynamic");
-//            DYNAMIC_GET_VALUE = DYNAMIC_CLAZZ.getMethod("getValue");
-//            DYNAMIC_OPS_CLAZZ = Class.forName("com.mojang.serialization.DynamicOps");
-//        } catch (Exception ignored) {}
-//    }
-
-//    public static Class<?> ENTITY_ZOMBIE_VILLAGER_CLAZZ = getNMSClazz("EntityZombieVillager");
-    public static Class<?> ENTITY_VILLAGER_CLAZZ;
-    public static Class<?> REPUTATION_CLAZZ;
-    public static Class<?> REPUTATION_TYPE_CLAZZ;
-
-    public enum ReputationTypeWrapped {
-        MAJOR_NEGATIVE,
-        MINOR_NEGATIVE,
-        MINOR_POSITIVE,
-        MAJOR_POSITIVE,
-        TRADING;
-        public final Object nmsCopy;
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        ReputationTypeWrapped() {
-            nmsCopy = Enum.valueOf((Class) REPUTATION_TYPE_CLAZZ, name());
-        }
-    }
+    public Class<?> ENTITY_VILLAGER_CLAZZ;
+    public Class<?> REPUTATION_CLAZZ;
+    public Class<?> REPUTATION_TYPE_CLAZZ;
 
 //    public static Method ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS;
-    public static Method ENTITY_VILLAGER_GET_GOSSIPS;
+    public Method ENTITY_VILLAGER_GET_GOSSIPS;
 //    public static Method REPUTATION_STORE;
-    public static Method REPUTATION_ADD_REPUTATION;
+    public Method REPUTATION_ADD_REPUTATION;
 
 
-    public static void loadMappingsSupported() {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void loadMappingsSupported() {
         String[] mappings = MAPPINGS.get(mappingsVersion);
         if (mappings == null) {
             BalancedVillagerTrades.LOGGER.severe("Mappings for " + mappingsVersion + " was null?");
@@ -149,6 +136,10 @@ public class NMSUtils {
 //            REPUTATION_STORE = REPUTATION_CLAZZ.getMethod(mappings[3], DYNAMIC_OPS_CLAZZ);
             REPUTATION_TYPE_CLAZZ = Class.forName(mappings[4]);
             REPUTATION_ADD_REPUTATION = REPUTATION_CLAZZ.getMethod(mappings[3], UUID.class, REPUTATION_TYPE_CLAZZ, int.class);
+
+            for (ReputationTypeWrapped reputationType : ReputationTypeWrapped.values()) {
+                NMS_REPUTATION_TYPES.put(reputationType, Enum.valueOf((Class) REPUTATION_TYPE_CLAZZ, reputationType.name()));
+            }
         } catch (Exception e) {
             BalancedVillagerTrades.LOGGER.severe(e.toString());
         }
