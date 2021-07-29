@@ -3,7 +3,6 @@ package com.jacky8399.balancedvillagertrades.utils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -15,12 +14,13 @@ import java.util.stream.Stream;
 public class MapField<T, K, V> extends ComplexField<T, Map<K, V>> {
     public final Function<String, K> keyTranslator;
     public final Class<V> valueType;
-    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter, Function<String, K> keyTranslator, Class<V> valueType) {
+    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter, Function<String, @Nullable K> keyTranslator, Class<V> valueType) {
         super((Class) Map.class, getter, setter);
         this.keyTranslator = keyTranslator;
         this.valueType = valueType;
     }
 
+    @Nullable
     public K translateKey(String key) {
         return keyTranslator.apply(key);
     }

@@ -29,7 +29,7 @@ public class AndPredicate extends TradePredicate {
     public String toString() {
         return predicates.stream()
                 .map(TradePredicate::toString)
-                .collect(Collectors.joining("\n  ", "all match:\n  ", ""))
+                .collect(Collectors.joining("\n  AND\n"))
                 .trim();
     }
 

@@ -37,15 +37,19 @@ public abstract class TradePredicate implements BiPredicate<Villager, MerchantRe
         CONSTRUCTORS.put("ingredient-0", map -> IngredientPredicate.parse(0, map));
         CONSTRUCTORS.put("ingredient-1", map -> IngredientPredicate.parse(1, map));
         CONSTRUCTORS.put("result", ResultPredicate::parse);
-        CONSTRUCTORS.put("villager", VillagerJobPredicate::parse);
     }
     @SuppressWarnings("unchecked")
     public static TradePredicate getFromMap(Map<String, Object> map) throws IllegalArgumentException {
         if (!CONSTRUCTORS.containsKey("result"))
             initConstructors();
 
+        // clone
+        map = new HashMap<>(map);
+
         List<TradePredicate> predicates = new ArrayList<>();
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
+        // remove special names
+        for (Iterator<Map.Entry<String, Object>> iterator = map.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, Object> entry = iterator.next();
             String str = entry.getKey();
             Object val = entry.getValue();
             if (str.equalsIgnoreCase("and") || str.equalsIgnoreCase("or")) {
@@ -68,6 +72,7 @@ public abstract class TradePredicate implements BiPredicate<Villager, MerchantRe
                 }
 
                 predicates.add(constructor.apply(list));
+                iterator.remove();
             } else if (str.equalsIgnoreCase("not")) {
                 if (!(val instanceof Map<?, ?>))
                     throw new IllegalArgumentException("Expected a map inside " + str);
@@ -76,21 +81,12 @@ public abstract class TradePredicate implements BiPredicate<Villager, MerchantRe
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException("An exception occurred inside " + str, e);
                 }
-            } else if (str.equalsIgnoreCase("fields")) {
-                if (!(val instanceof Map<?, ?>))
-                    throw new IllegalArgumentException("Expected a map inside " + str);
-                predicates.addAll(FieldPredicate.parse((Map<String, Object>) val));
-            } else {
-                Function<Object, TradePredicate> constructor = CONSTRUCTORS.get(str);
-                if (constructor == null)
-                    throw new IllegalArgumentException("Don't know how to match " + str);
-                try {
-                    predicates.add(constructor.apply(val));
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("An exception occurred inside " + str, e);
-                }
+                iterator.remove();
             }
         }
+
+        predicates.addAll(FieldPredicate.parse(map));
+
         if (predicates.size() == 1)
             return predicates.get(0);
         else

@@ -9,7 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class OperatorUtils {
-    public static final Pattern BASIC_COMPARISON = Pattern.compile("^(>|>=|<|<=|=|<>)\\s*(\\d+)$");
+    public static final Pattern BASIC_COMPARISON = Pattern.compile("^(>|>=|<|<=|==?|<>)\\s*(\\d+)$");
     public static final Pattern BETWEEN = Pattern.compile("^between\\s+(\\d+)\\s+and(\\d+)$");
     public static final Pattern IN_RANGE = Pattern.compile("^in\\s+(\\d+)(?:-|.{2,3})(\\d+)$");
 
@@ -76,6 +76,16 @@ public class OperatorUtils {
             case "=":
             case "==":
                 return i -> operand.getAsInt();
+            case "+=":
+                return i -> i + operand.getAsInt();
+            case "-=":
+                return i -> i - operand.getAsInt();
+            case "*=":
+                return i -> i * operand.getAsInt();
+            case "/=":
+                return i -> i / operand.getAsInt();
+            case "%=":
+                return i -> i % operand.getAsInt();
             default:
                 throw new IllegalArgumentException(operator + " is not a valid operator");
         }

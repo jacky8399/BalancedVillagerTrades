@@ -36,6 +36,7 @@ dependencies {
 
 processResources {
     from(sourceSets.main.resources.srcDirs) {
+        duplicatesStrategy = DuplicatesStrategy.WARN
         filter ReplaceTokens, tokens: [version: version]
     }
 }

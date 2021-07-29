@@ -52,6 +52,7 @@ public class Config {
                     logger.severe("Expected map in " + name + ", skipping");
                     continue;
                 }
+                @SuppressWarnings("unchecked")
                 Map<String, Object> entryMap = (Map<String, Object>) obj;
                 Recipe recipe = new Recipe(name);
                 try {
