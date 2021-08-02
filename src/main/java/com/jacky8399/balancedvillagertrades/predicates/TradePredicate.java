@@ -1,16 +1,13 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import org.bukkit.entity.Villager;
-import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public abstract class TradePredicate implements BiPredicate<Villager, MerchantRecipe>, Predicate<TradeWrapper> {
+public abstract class TradePredicate implements Predicate<TradeWrapper> {
     @NotNull
     public TradePredicate and(@NotNull TradePredicate other) {
         return new AndPredicate(Arrays.asList(this, other));
@@ -28,9 +25,7 @@ public abstract class TradePredicate implements BiPredicate<Villager, MerchantRe
     }
 
     @Override
-    public boolean test(final TradeWrapper tradeWrapper) {
-        return test(tradeWrapper.getVillager(), tradeWrapper.getRecipe());
-    }
+    public abstract boolean test(final TradeWrapper tradeWrapper);
 
     public static final HashMap<String, Function<Object, TradePredicate>> CONSTRUCTORS = new HashMap<>();
     private static void initConstructors() {

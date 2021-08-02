@@ -2,8 +2,8 @@ package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -30,14 +29,14 @@ public abstract class ItemPredicate extends TradePredicate {
 
     public ItemPredicate(ItemStack stack, Set<ComplexItemMatcher> matchers, List<ItemMatcher> simpleMatchers) {
         this.stack = stack.clone();
-        this.matchers = ImmutableSet.copyOf(matchers);
+//        this.matchers = ImmutableSet.copyOf(matchers);
         this.simpleMatchers = ImmutableList.copyOf(simpleMatchers);
     }
 
     @NotNull
     public final ItemStack stack;
-    @NotNull
-    public final ImmutableSet<ComplexItemMatcher> matchers;
+//    @NotNull
+//    public final ImmutableSet<ComplexItemMatcher> matchers;
     @NotNull
     public final ImmutableList<ItemMatcher> simpleMatchers;
 
@@ -45,35 +44,32 @@ public abstract class ItemPredicate extends TradePredicate {
     public abstract ItemStack getStack(Villager villager, MerchantRecipe recipe);
 
     @Override
-    public boolean test(Villager villager, MerchantRecipe merchantRecipe) {
-        ItemStack toTest = getStack(villager, merchantRecipe);
-//        BalancedVillagerTrades.LOGGER.info(String.format("Item: %s (Origin: %s)", toTest, this.getClass().getSimpleName()));
+    public boolean test(TradeWrapper tradeWrapper) {
+        ItemStack toTest = getStack(tradeWrapper.getVillager(), tradeWrapper.getRecipe());
         if (toTest == null)
             return false;
         for (ItemMatcher simpleMatcher : simpleMatchers) {
             if (!simpleMatcher.test(toTest)) {
-//                BalancedVillagerTrades.LOGGER.info("Failed at " + simpleMatcher.pattern);
                 return false;
             }
         }
-        for (ComplexItemMatcher matcher : matchers) {
-            if (!matcher.test(stack, toTest)) {
-                return false;
-            }
-        }
-//        BalancedVillagerTrades.LOGGER.info("Item matcher success");
+//        for (ComplexItemMatcher matcher : matchers) {
+//            if (!matcher.test(stack, toTest)) {
+//                return false;
+//            }
+//        }
         return true;
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        if (stack.getType() != Material.AIR) {
-            builder.append("Match against ").append(stack).append(" by:\n");
-            for (ComplexItemMatcher matcher : matchers) {
-                builder.append("- ").append(matcher.name).append('\n');
-            }
-        }
+//        if (stack.getType() != Material.AIR) {
+//            builder.append("Match against ").append(stack).append(" by:\n");
+//            for (ComplexItemMatcher matcher : matchers) {
+//                builder.append("- ").append(matcher.name).append('\n');
+//            }
+//        }
         builder.append("Match by:\n");
         for (ItemMatcher matcher : simpleMatchers) {
             builder.append("- ").append(matcher.pattern).append('\n');
@@ -97,26 +93,26 @@ public abstract class ItemPredicate extends TradePredicate {
             return predicate.test(stack1, stack2);
         }
 
-        static <T> ComplexItemMatcher compareProperty(String name, Function<ItemStack, T> mapper, BiPredicate<T, T> predicate) {
-            return new ComplexItemMatcher(name, (i1, i2) -> {
-                T t1 = mapper.apply(i1), t2 = mapper.apply(i2);
-                return predicate.test(t1, t2);
-            });
-        }
+//        static <T> ComplexItemMatcher compareProperty(String name, Function<ItemStack, T> mapper, BiPredicate<T, T> predicate) {
+//            return new ComplexItemMatcher(name, (i1, i2) -> {
+//                T t1 = mapper.apply(i1), t2 = mapper.apply(i2);
+//                return predicate.test(t1, t2);
+//            });
+//        }
+//
+//        static <T> ComplexItemMatcher compareMeta(String name, Predicate<ItemMeta> precondition, Function<ItemMeta, T> mapper, BiPredicate<T, T> predicate) {
+//            return compareProperty(name, ItemStack::getItemMeta, (m1, m2) -> {
+//                if (!precondition.test(m1) || !precondition.test(m2))
+//                    return false;
+//                T t1 = mapper.apply(m1), t2 = mapper.apply(m2);
+//                return predicate.test(t1, t2);
+//            });
+//        }
 
-        static <T> ComplexItemMatcher compareMeta(String name, Predicate<ItemMeta> precondition, Function<ItemMeta, T> mapper, BiPredicate<T, T> predicate) {
-            return compareProperty(name, ItemStack::getItemMeta, (m1, m2) -> {
-                if (!precondition.test(m1) || !precondition.test(m2))
-                    return false;
-                T t1 = mapper.apply(m1), t2 = mapper.apply(m2);
-                return predicate.test(t1, t2);
-            });
-        }
-
-        public static final ComplexItemMatcher SIMILAR = new ComplexItemMatcher("similar", ItemStack::isSimilar);
-        public static final ComplexItemMatcher AMOUNT = compareProperty("amount", ItemStack::getAmount, Integer::equals);
-        public static final ComplexItemMatcher TYPE = compareProperty("type", ItemStack::getType, Material::equals);
-        public static final ComplexItemMatcher NAME = compareMeta("name", ItemMeta::hasDisplayName, ItemMeta::getDisplayName, String::equals);
+//        public static final ComplexItemMatcher SIMILAR = new ComplexItemMatcher("similar", ItemStack::isSimilar);
+//        public static final ComplexItemMatcher AMOUNT = compareProperty("amount", ItemStack::getAmount, Integer::equals);
+//        public static final ComplexItemMatcher TYPE = compareProperty("type", ItemStack::getType, Material::equals);
+//        public static final ComplexItemMatcher NAME = compareMeta("name", ItemMeta::hasDisplayName, ItemMeta::getDisplayName, String::equals);
     }
 
     public static abstract class ItemMatcher implements Predicate<ItemStack> {

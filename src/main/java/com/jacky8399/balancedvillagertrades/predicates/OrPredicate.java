@@ -1,8 +1,7 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.google.common.collect.ImmutableList;
-import org.bukkit.entity.Villager;
-import org.bukkit.inventory.MerchantRecipe;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -15,9 +14,9 @@ public class OrPredicate extends TradePredicate {
     }
 
     @Override
-    public boolean test(Villager villager, MerchantRecipe recipe) {
+    public boolean test(TradeWrapper tradeWrapper) {
         for (TradePredicate predicate : predicates) {
-            if (predicate.test(villager, recipe))
+            if (predicate.test(tradeWrapper))
                 return true;
         }
         return predicates.size() == 0; // always true if empty
@@ -27,7 +26,7 @@ public class OrPredicate extends TradePredicate {
     public String toString() {
         return predicates.stream()
                 .map(TradePredicate::toString)
-                .collect(Collectors.joining("\n  ", "any match:\n  ", ""))
+                .collect(Collectors.joining(("\n  OR\n")))
                 .trim();
     }
 

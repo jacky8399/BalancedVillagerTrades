@@ -3,10 +3,10 @@ package com.jacky8399.balancedvillagertrades.actions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.ComplexField;
-import com.jacky8399.balancedvillagertrades.utils.Field;
-import com.jacky8399.balancedvillagertrades.utils.Fields;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import com.jacky8399.balancedvillagertrades.utils.fields.ComplexField;
+import com.jacky8399.balancedvillagertrades.utils.fields.Field;
+import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +27,7 @@ public class ActionEcho extends Action {
     }
 
     public static ActionEcho parse(String name, List<?> list) {
+        //noinspection UnstableApiUsage
         return new ActionEcho(name, list.stream()
                 .map(Object::toString)
                 .map(fieldName -> {
@@ -49,6 +50,7 @@ public class ActionEcho extends Action {
             Object value = field.get(tradeWrapper);
             BalancedVillagerTrades.LOGGER.info("  " + fieldName + ": " + value);
             if (field instanceof ComplexField) {
+                @SuppressWarnings("unchecked")
                 Collection<String> children = ((ComplexField<TradeWrapper, ?>) field).getFields(tradeWrapper);
                 if (children != null)
                     BalancedVillagerTrades.LOGGER.info("  (contains fields: " + String.join(", ", children) + ")");

@@ -1,6 +1,5 @@
 package com.jacky8399.balancedvillagertrades.utils.fields;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiConsumer;
@@ -31,8 +30,6 @@ public class Field<TOwner, TField> {
             setter.accept(owner, value);
     }
 
-    @Contract("!null -> !null")
-    @Nullable
     public <TInner> Field<TOwner, TInner> andThen(Field<TField, TInner> field) {
         if (field == null)
             return null;

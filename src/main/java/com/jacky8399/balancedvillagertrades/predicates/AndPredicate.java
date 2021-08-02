@@ -1,8 +1,7 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.google.common.collect.ImmutableList;
-import org.bukkit.entity.Villager;
-import org.bukkit.inventory.MerchantRecipe;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -15,9 +14,9 @@ public class AndPredicate extends TradePredicate {
     }
 
     @Override
-    public boolean test(Villager villager, MerchantRecipe recipe) {
+    public boolean test(TradeWrapper tradeWrapper) {
         for (TradePredicate predicate : predicates) {
-            if (!predicate.test(villager, recipe)) {
+            if (!predicate.test(tradeWrapper)) {
 //                BalancedVillagerTrades.LOGGER.info("And predicate failed at " + predicate);
                 return false;
             }

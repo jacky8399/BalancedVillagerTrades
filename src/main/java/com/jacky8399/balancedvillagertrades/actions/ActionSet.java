@@ -1,11 +1,16 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.*;
+import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import com.jacky8399.balancedvillagertrades.utils.fields.ComplexField;
+import com.jacky8399.balancedvillagertrades.utils.fields.Field;
+import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.function.IntUnaryOperator;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -17,8 +22,8 @@ public class ActionSet extends Action {
      * A description of the operation
      */
     public final String desc;
-    public final Field field;
-    public final UnaryOperator transformer;
+    public final Field<TradeWrapper, ?> field;
+    public final UnaryOperator<?> transformer;
 
     public ActionSet(String desc, Field<TradeWrapper, ?> field, UnaryOperator<?> transformer) {
         this.desc = desc;
@@ -28,8 +33,8 @@ public class ActionSet extends Action {
 
     @Override
     public void accept(TradeWrapper tradeWrapper) {
-        Object newValue = transformer.apply(field.get(tradeWrapper));
-        field.set(tradeWrapper, newValue);
+        Object newValue = ((UnaryOperator) transformer).apply(field.get(tradeWrapper));
+        ((Field) field).set(tradeWrapper, newValue);
     }
 
     @Override

@@ -1,9 +1,10 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.*;
+import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import com.jacky8399.balancedvillagertrades.utils.fields.*;
 import org.bukkit.entity.Villager;
-import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -30,12 +31,6 @@ public class FieldPredicate extends TradePredicate {
     @Override
     public String toString() {
         return "Test " + desc;
-    }
-
-    @Override
-    public boolean test(Villager villager, MerchantRecipe recipe) {
-        TradeWrapper wrapper = new TradeWrapper(villager, recipe);
-        return test(wrapper);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -73,7 +68,7 @@ public class FieldPredicate extends TradePredicate {
                                 BalancedVillagerTrades.LOGGER.warning("Falling back to old item predicate for " + fieldName + ".");
                             }
                             TradePredicate predicate = TradePredicate.CONSTRUCTORS.get(fieldName).apply(innerMap);
-                            return Stream.of(new FieldPredicate("LEGACY ITEM FIELD " + fieldName + "\n" + predicate.toString(),
+                            return Stream.of(new FieldPredicate(predicate.toString(),
                                     IDENTITY_FIELD, obj -> predicate.test((TradeWrapper) obj)));
                         }
                         return parse((ComplexField<TradeWrapper, ?>) field, fieldName, innerMap);
@@ -95,6 +90,8 @@ public class FieldPredicate extends TradePredicate {
     private static boolean warnOldVillagerSyntax = true;
 
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+
+    @SuppressWarnings("unchecked")
     private static Predicate<?> getPredicate(Field<TradeWrapper, ?> field, String input) {
         Class<?> clazz = field.clazz;
         String trimmed = input.trim();
@@ -151,18 +148,22 @@ public class FieldPredicate extends TradePredicate {
                 throw new IllegalArgumentException("Can only check for keys in a map");
             }
             String key = matcher.group(1);
-            Object translatedKey = ((MapField) field).translateKey(key);
-            return translatedKey != null ? obj -> ((Map) obj).containsKey(translatedKey) : obj -> false;
+            Object translatedKey = ((MapField<TradeWrapper, ?, ?>) field).translateKey(key);
+            return translatedKey != null ? obj -> ((Map<?, ?>) obj).containsKey(translatedKey) : obj -> false;
         } else if (clazz == Villager.class) {
             Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(trimmed);
             if (matcher.matches()) {
                 if (warnOldVillagerSyntax) {
                     warnOldVillagerSyntax = false;
                     BalancedVillagerTrades.LOGGER.warning("Using 'villager: profession/type ...' to target villagers is obsolete.");
-                    BalancedVillagerTrades.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Fields#villager-properties for a better way.");
+                    BalancedVillagerTrades.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Fields#villager-properties " +
+                            "for a better way to target specific villagers.");
                 }
-                VillagerJobPredicate predicate = VillagerJobPredicate.parse(trimmed);
-                return obj -> predicate.test((Villager) obj, null);
+//                VillagerJobPredicate predicate = VillagerJobPredicate.parse(trimmed);
+//                return obj -> predicate.test(new TradeWrapper((Villager) obj, null));
+                Field<TradeWrapper, ?> property = ((ComplexField<TradeWrapper, ?>) field).getFieldWrapped(matcher.group(1));
+                //noinspection ConstantConditions
+                return getPredicate(property, matcher.group(2) + matcher.group(3));
             }
         }
         throw new IllegalArgumentException("Don't know how to handle " + clazz.getSimpleName() + " fields");

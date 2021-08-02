@@ -66,6 +66,7 @@ public class Fields {
             })
             .build();
 
+    @SuppressWarnings("unchecked")
     @NotNull
     public static Field<TradeWrapper, ?> findField(@Nullable ComplexField<TradeWrapper, ?> root, String path, boolean recursive) {
         if (!recursive) {
