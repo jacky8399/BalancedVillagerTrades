@@ -10,7 +10,7 @@ public abstract class ReputationProvider {
         MINOR_NEGATIVE,
         MINOR_POSITIVE,
         MAJOR_POSITIVE,
-        TRADING;
+        TRADING
     }
 
     public abstract void addGossip(Villager villager, UUID uuid, ReputationTypeWrapped reputationType, int amount);

@@ -159,8 +159,6 @@ public class FieldPredicate extends TradePredicate {
                     BalancedVillagerTrades.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Fields#villager-properties " +
                             "for a better way to target specific villagers.");
                 }
-//                VillagerJobPredicate predicate = VillagerJobPredicate.parse(trimmed);
-//                return obj -> predicate.test(new TradeWrapper((Villager) obj, null));
                 Field<TradeWrapper, ?> property = ((ComplexField<TradeWrapper, ?>) field).getFieldWrapped(matcher.group(1));
                 //noinspection ConstantConditions
                 return getPredicate(property, matcher.group(2) + matcher.group(3));

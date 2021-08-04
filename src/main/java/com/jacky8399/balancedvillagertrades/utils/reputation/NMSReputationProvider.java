@@ -65,15 +65,6 @@ public class NMSReputationProvider extends ReputationProvider {
 
     }
 
-    //    public static void copyGossipsFrom(ZombieVillager zombieVillager, Object gossips) {
-//        Object nms = getHandle(zombieVillager);
-//        try {
-//            Object dynamic = REPUTATION_STORE.invoke(gossips, DYNAMIC_OPS_NBT_INSTANCE);
-//            Object nbt = DYNAMIC_GET_VALUE.invoke(dynamic);
-//            ENTITY_ZOMBIE_VILLAGER_SET_GOSSIPS.invoke(nms, nbt);
-//        } catch (Exception ignored) {}
-//    }
-
     private static final EnumMap<ReputationTypeWrapped, Object> NMS_REPUTATION_TYPES = new EnumMap<>(ReputationTypeWrapped.class);
 
     public void addGossip(Villager villager, UUID uuid, ReputationTypeWrapped reputationType, int amount) {
@@ -132,8 +123,6 @@ public class NMSReputationProvider extends ReputationProvider {
                 if (ENTITY_VILLAGER_GET_GOSSIPS == null)
                     throw new IllegalStateException("Can't get reputation");
             }
-//            DYNAMIC_OPS_NBT_INSTANCE = DYNAMIC_OPS_NBT_CLAZZ.getField(mappings[2]).get(null);
-//            REPUTATION_STORE = REPUTATION_CLAZZ.getMethod(mappings[3], DYNAMIC_OPS_CLAZZ);
             REPUTATION_TYPE_CLAZZ = Class.forName(mappings[4]);
             REPUTATION_ADD_REPUTATION = REPUTATION_CLAZZ.getMethod(mappings[3], UUID.class, REPUTATION_TYPE_CLAZZ, int.class);
 

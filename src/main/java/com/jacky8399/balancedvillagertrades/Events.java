@@ -19,38 +19,6 @@ import java.util.List;
 import java.util.ListIterator;
 
 public class Events implements Listener {
-//
-//    public static void fixTrade(Villager villager, MerchantRecipe trade) {
-//        // stick trade
-//        if (Config.nerfStickTrade && villager.getProfession() == Villager.Profession.FLETCHER) {
-//            ItemStack item1 = trade.getIngredients().get(0), item2 = trade.getIngredients().get(1);
-//            // maybe we modified it before, so we need to check both stacks
-//            if (item1.getType() != Material.STICK || (item2.getType() != Material.STICK && item2.getType() != Material.AIR))
-//                return;
-//            // set ingredients
-//            int originalAmount = trade.getIngredients().stream().mapToInt(ItemStack::getAmount).sum();
-//            int amount = Config.clamp(originalAmount, Config.nerfStickTradeMinAmount, Config.nerfStickTradeMaxAmount);
-//            int amount1 = Math.min(amount, 64), amount2 = amount - amount1;
-//            List<ItemStack> newIngredients = new ArrayList<>();
-//            newIngredients.add(new ItemStack(Material.STICK, amount1));
-//            if (amount2 > 0)
-//                newIngredients.add(new ItemStack(Material.STICK, amount2));
-//            trade.setIngredients(newIngredients);
-//            trade.setMaxUses(Config.nerfStickTradeMaxUses);
-//            if (Config.nerfStickTradeDisableDiscounts && trade.getPriceMultiplier() != 0)
-//                trade.setPriceMultiplier(0);
-//        }
-//        // bookshelves & book trade
-//        if (Config.nerfBookshelvesExploit && villager.getProfession() == Villager.Profession.LIBRARIAN &&
-//                trade.getIngredients().get(0).getType() == Material.BOOK && trade.getIngredients().get(1).getType() == Material.AIR) {
-//            int originalPrice = trade.getIngredients().get(0).getAmount();
-//            if (originalPrice < Config.nerfBookshelvesExploitMinAmount)
-//                // does this work idk
-//                trade.setIngredients(Collections.singletonList(new ItemStack(Material.BOOK, Config.nerfBookshelvesExploitMinAmount)));
-//            if (Config.nerfBookshelvesExploitDisableDiscounts)
-//                trade.setPriceMultiplier(0);
-//        }
-//    }
 
     // patch trades
     @EventHandler(ignoreCancelled = true)
@@ -116,9 +84,6 @@ public class Events implements Listener {
                     player.spawnParticle(Particle.VILLAGER_ANGRY, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);
                 }
             }
-//            ZombieVillager zombieVillager = (ZombieVillager) e.getTransformedEntity();
-//            // copy nbt to zombie villager
-//            NMSUtils.copyGossipsFrom(zombieVillager, gossips);
         }
     }
 }

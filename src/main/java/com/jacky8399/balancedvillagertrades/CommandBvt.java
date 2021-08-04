@@ -1,6 +1,8 @@
 package com.jacky8399.balancedvillagertrades;
 
 import com.jacky8399.balancedvillagertrades.actions.Action;
+import com.jacky8399.balancedvillagertrades.utils.reputation.NMSReputationProvider;
+import com.jacky8399.balancedvillagertrades.utils.reputation.PaperReputationProvider;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -64,6 +66,8 @@ public class CommandBvt implements TabExecutor {
             }
         }
         sender.sendMessage(ChatColor.GREEN + "You are using BalancedVillagerTrades v" + BalancedVillagerTrades.INSTANCE.getDescription().getVersion());
+        sender.sendMessage(ChatColor.GREEN + "Using " + (BalancedVillagerTrades.REPUTATION instanceof PaperReputationProvider ?
+                "Paper Reputation API" : "NMS v" + NMSReputationProvider.mappingsVersion));
         sender.sendMessage(ChatColor.AQUA + "Loaded recipes: " + Recipe.RECIPES.size());
         return true;
     }
