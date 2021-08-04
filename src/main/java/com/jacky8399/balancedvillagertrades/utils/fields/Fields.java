@@ -2,14 +2,12 @@ package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class Fields {
@@ -46,24 +44,7 @@ public class Fields {
                         newRecipe.setIngredients(oldRecipe.getIngredients());
                         trade.setRecipe(newRecipe);
                     }))
-            .put("villager", new ComplexField<TradeWrapper, Villager>(Villager.class,
-                    TradeWrapper::getVillager, (trade, villager)->{}) {
-                private final ImmutableMap<String, Field<Villager, ?>> FIELDS = ImmutableMap.<String, Field<Villager, ?>>builder()
-                        .put("type", Field.readOnlyField(String.class, villager -> villager.getVillagerType().name()))
-                        .put("profession", Field.readOnlyField(String.class, villager -> villager.getProfession().name()))
-                        .put("level", Field.readOnlyField(Integer.class, Villager::getVillagerLevel))
-                        .put("experience", Field.readOnlyField(Integer.class, Villager::getVillagerExperience))
-                        .build();
-                @Override
-                public @Nullable Field<Villager, ?> getField(String fieldName) {
-                    return FIELDS.get(fieldName);
-                }
-
-                @Override
-                public @Nullable Collection<String> getFields(TradeWrapper tradeWrapper) {
-                    return FIELDS.keySet();
-                }
-            })
+            .put("villager", new VillagerField())
             .build();
 
     @SuppressWarnings("unchecked")
