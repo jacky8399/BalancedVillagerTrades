@@ -47,6 +47,12 @@ class VillagerField extends ComplexField<TradeWrapper, Villager> {
 
         @Override
         public @Nullable Field<Inventory, ?> getField(String fieldName) {
+            if ("size".equals(fieldName)) {
+                return Field.readOnlyField(Integer.class, Inventory::getSize);
+            } else if ("empty".equals(fieldName)) {
+                return Field.readOnlyField(Boolean.class, Inventory::isEmpty);
+            }
+
             try {
                 int slot = Integer.parseInt(fieldName);
                 return new ItemStackField<>(inv -> {
@@ -91,6 +97,8 @@ class VillagerField extends ComplexField<TradeWrapper, Villager> {
 
         @Override
         public @Nullable Collection<String> getFields(Villager villager) {
+            if (villager == null)
+                return Arrays.asList("size", "empty");
             ItemStack[] items = villager.getInventory().getContents();
             return Stream.concat(
                     IntStream.range(0, items.length).mapToObj(Integer::toString),

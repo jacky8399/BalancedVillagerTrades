@@ -15,7 +15,7 @@ public abstract class ComplexField<TOwner, TField> extends Field<TOwner, TField>
     public abstract Field<TField, ?> getField(String fieldName);
 
     @Nullable
-    public Collection<String> getFields(TOwner owner) {
+    public Collection<String> getFields(@Nullable TOwner owner) {
         return null;
     }
 

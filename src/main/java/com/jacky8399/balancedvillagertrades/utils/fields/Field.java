@@ -2,6 +2,7 @@ package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -43,6 +44,11 @@ public class Field<TOwner, TField> {
             @Override
             public @Nullable Field<TInner, ?> getField(String fieldName) {
                 return ((ComplexField<TField, TInner>) field).getField(fieldName);
+            }
+
+            @Override
+            public @Nullable Collection<String> getFields(@Nullable TOwner owner) {
+                return ((ComplexField<TField, TInner>) field).getFields(owner != null ? Field.this.get(owner) : null);
             }
         } : new Field<>(field.clazz, newGetter, newSetter);
     }

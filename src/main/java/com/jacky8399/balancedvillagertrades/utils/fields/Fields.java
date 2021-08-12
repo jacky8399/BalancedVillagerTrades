@@ -1,14 +1,16 @@
 package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Fields {
     public static final ImmutableMap<String, Field<TradeWrapper, ?>> FIELDS = ImmutableMap.<String, Field<TradeWrapper, ?>>builder()
@@ -76,6 +78,36 @@ public class Fields {
             throw new IllegalArgumentException(pathName + " does not have field " + path);
         }
         return field;
+    }
+
+    @NotNull
+    public static Map<String, ? extends Field<TradeWrapper, ?>> listFields(@Nullable ComplexField<TradeWrapper, ?> root, @Nullable String path, @Nullable TradeWrapper context) {
+        if (root == null) {
+            return FIELDS.entrySet().stream()
+                    .flatMap(entry -> {
+                        Field<TradeWrapper, ?> field = entry.getValue();
+                        if (field instanceof ComplexField)
+                            return listFields((ComplexField<TradeWrapper, ?>) field, entry.getKey(), context)
+                                    .entrySet().stream();
+                        return Stream.of(Maps.immutableEntry(entry.getKey(), field));
+                    })
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+        Collection<String> fields = root.getFields(context);
+        if (fields != null) {
+            return fields.stream()
+                    .flatMap(key -> {
+                        Field<TradeWrapper, ?> field = root.getFieldWrapped(key);
+                        if (field instanceof ComplexField) {
+                            return listFields((ComplexField<TradeWrapper, ?>) field, path + "." + key, context)
+                                    .entrySet().stream();
+                        } else {
+                            return Stream.of(Maps.immutableEntry(path + "." + key, field));
+                        }
+                    })
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+        return Collections.singletonMap(path, root);
     }
 
     private static void setIngredient(int index, TradeWrapper trade, final ItemStack stack) {

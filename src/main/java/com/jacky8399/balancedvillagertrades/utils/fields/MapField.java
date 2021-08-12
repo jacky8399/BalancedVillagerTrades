@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades.utils.fields;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -36,6 +37,8 @@ public class MapField<T, K, V> extends ComplexField<T, Map<K, V>> {
 
     @Override
     public @Nullable Collection<String> getFields(T owner) {
+        if (owner == null)
+            return Collections.singletonList("size");
         return Stream.concat(Stream.of("size"), get(owner).keySet().stream().map(Objects::toString))
                 .collect(Collectors.toList());
     }
