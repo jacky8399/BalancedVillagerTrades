@@ -22,9 +22,14 @@ public abstract class ComplexField<TOwner, TField> extends Field<TOwner, TField>
     }
 
     @Nullable
-    public Field<TOwner, ?> getFieldWrapped(String fieldName) {
+    public FieldAccessor<TOwner, TField, ?> getFieldWrapped(String fieldName) {
         Field<TField, ?> field = getField(fieldName);
-        return field != null ? andThen(field) : null;
+        return field != null ? new FieldAccessor<>(this, field, fieldName) : null;
+    }
+
+    @Override
+    public String toString() {
+        return "ComplexField{type=" + clazz.getSimpleName() + "}";
     }
 
     public static <TOwner, TField> ComplexField<TOwner, TField> withFields(

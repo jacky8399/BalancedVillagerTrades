@@ -4,8 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import com.jacky8399.balancedvillagertrades.utils.fields.ComplexField;
-import com.jacky8399.balancedvillagertrades.utils.fields.Field;
+import com.jacky8399.balancedvillagertrades.utils.fields.FieldAccessor;
 import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
 
 import java.util.Collection;
@@ -15,8 +14,8 @@ import java.util.Objects;
 
 public class ActionEcho extends Action {
     public final String recipeName;
-    public final Map<String, Field<TradeWrapper, ?>> fields;
-    public ActionEcho(String name, Map<String, Field<TradeWrapper, ?>> fields) {
+    public final Map<String, FieldAccessor<TradeWrapper, ?, ?>> fields;
+    public ActionEcho(String name, Map<String, FieldAccessor<TradeWrapper, ?, ?>> fields) {
         this.recipeName = name;
         this.fields = ImmutableMap.copyOf(fields);
     }
@@ -49,9 +48,8 @@ public class ActionEcho extends Action {
         fields.forEach((fieldName, field) -> {
             Object value = field.get(tradeWrapper);
             BalancedVillagerTrades.LOGGER.info("  " + fieldName + ": " + value);
-            if (field instanceof ComplexField) {
-                @SuppressWarnings("unchecked")
-                Collection<String> children = ((ComplexField<TradeWrapper, ?>) field).getFields(tradeWrapper);
+            if (field.isComplex()) {
+                Collection<String> children = field.getFields(tradeWrapper);
                 if (children != null)
                     BalancedVillagerTrades.LOGGER.info("  (contains fields: " + String.join(", ", children) + ")");
                 else

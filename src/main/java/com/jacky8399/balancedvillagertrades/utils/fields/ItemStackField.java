@@ -20,35 +20,39 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
     }
 
     // I'm lazy
-    private static final Field<ItemStack, ItemMeta> META_FIELD = new Field<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta);
+    private static final Field<ItemStack, ItemMeta> META_FIELD = FieldAccessor.emptyAccessor(new Field<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta));
 
-    private static final Field<ItemStack, Map<Enchantment, Integer>> ENCHANTMENT_FIELD =
-            META_FIELD.andThen(new MapField<>(
-                    meta -> new HashMap<>(
-                            meta instanceof EnchantmentStorageMeta ?
-                                    ((EnchantmentStorageMeta) meta).getStoredEnchants() :
-                                    meta.getEnchants()
-                    ),
-                    (meta, newMap) -> {
-                        boolean isEnchantedBook = meta instanceof EnchantmentStorageMeta;
-                        // remove enchantments
-                        newMap.values().removeIf(num -> num <= 0);
-                        Map<Enchantment, Integer> oldEnch = isEnchantedBook ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
-                        if (!oldEnch.keySet().equals(newMap.keySet())) {
-                            Set<Enchantment> oldEnchSet = new HashSet<>(oldEnch.keySet());
-                            oldEnchSet.removeAll(newMap.keySet());
-                            oldEnchSet.forEach(isEnchantedBook ? ((EnchantmentStorageMeta) meta)::removeStoredEnchant : meta::removeEnchant);
-                        }
-                        newMap.forEach((ench, lvl) -> {
-                            if (isEnchantedBook)
-                                ((EnchantmentStorageMeta) meta).addStoredEnchant(ench, lvl, true);
-                            else
-                                meta.addEnchant(ench, lvl, true);
-                        });
-                    },
-                    string -> Enchantment.getByKey(NamespacedKey.fromString(string)),
-                    Integer.class
-            ));
+    private static final MapField<ItemStack, Enchantment, Integer> ENCHANTMENT_FIELD = new MapField<>(
+            is -> {
+                ItemMeta meta = is.getItemMeta();
+                return new HashMap<>(
+                        meta instanceof EnchantmentStorageMeta ?
+                                ((EnchantmentStorageMeta) meta).getStoredEnchants() :
+                                meta.getEnchants()
+                );
+            },
+            (is, newMap) -> {
+                ItemMeta meta = is.getItemMeta();
+                boolean isEnchantedBook = meta instanceof EnchantmentStorageMeta;
+                // remove enchantments
+                newMap.values().removeIf(num -> num <= 0);
+                Map<Enchantment, Integer> oldEnch = isEnchantedBook ? ((EnchantmentStorageMeta) meta).getStoredEnchants() : meta.getEnchants();
+                if (!oldEnch.keySet().equals(newMap.keySet())) {
+                    Set<Enchantment> oldEnchSet = new HashSet<>(oldEnch.keySet());
+                    oldEnchSet.removeAll(newMap.keySet());
+                    oldEnchSet.forEach(isEnchantedBook ? ((EnchantmentStorageMeta) meta)::removeStoredEnchant : meta::removeEnchant);
+                }
+                newMap.forEach((ench, lvl) -> {
+                    if (isEnchantedBook)
+                        ((EnchantmentStorageMeta) meta).addStoredEnchant(ench, lvl, true);
+                    else
+                        meta.addEnchant(ench, lvl, true);
+                });
+                is.setItemMeta(meta);
+            },
+            string -> Enchantment.getByKey(NamespacedKey.fromString(string)),
+            Integer.class
+    );
 
     public static final ImmutableMap<String, Field<ItemStack, ?>> ITEM_STACK_FIELDS = ImmutableMap.<String, Field<ItemStack, ?>>builder()
             .put("amount", new Field<>(Integer.class,

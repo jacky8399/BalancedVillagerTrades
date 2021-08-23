@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
@@ -47,7 +48,7 @@ public class FieldPredicate extends TradePredicate {
                 .flatMap(entry -> {
                     String fieldName = entry.getKey();
                     Object value = entry.getValue();
-                    Field<TradeWrapper, ?> field;
+                    FieldAccessor<TradeWrapper, ?, ?> field;
                     try {
                         field = Fields.findField(base, fieldName, true);
                     } catch (IllegalArgumentException e) {
@@ -56,12 +57,12 @@ public class FieldPredicate extends TradePredicate {
                     }
                     fieldName = base != null ? baseName + "." + fieldName : fieldName; // for better error messages
                     if (value instanceof Map) {
-                        if (!(field instanceof ComplexField)) { // complex fields only
+                        if (!field.isComplex()) { // complex fields only
                             BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " does not have inner fields! Skipping.");
                             return Stream.empty();
                         }
                         Map<String, Object> innerMap = (Map<String, Object>) value;
-                        if (field instanceof ItemStackField && innerMap.size() == 1 && innerMap.containsKey("matches")) {
+                        if (field.child instanceof ItemStackField && innerMap.size() == 1 && innerMap.containsKey("matches")) {
                             // fallback to old ItemPredicates
                             if (warnOldItemSyntax) {
                                 warnOldItemSyntax = false;
@@ -71,10 +72,14 @@ public class FieldPredicate extends TradePredicate {
                             return Stream.of(new FieldPredicate(predicate.toString(),
                                     IDENTITY_FIELD, obj -> predicate.test((TradeWrapper) obj)));
                         }
-                        return parse((ComplexField<TradeWrapper, ?>) field, fieldName, innerMap);
+                        return parse(field, fieldName, innerMap);
                     } else {
                         try {
-                            Predicate<?> predicate = getPredicate(field, value.toString());
+                            Predicate<?> predicate;
+                            if (value != null)
+                                predicate = getPredicate(field, value.toString());
+                            else
+                                predicate = Objects::isNull;
                             return Stream.of(new FieldPredicate(fieldName + ": " + value, field, predicate));
                         } catch (IllegalArgumentException e) {
                             BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping");
@@ -92,7 +97,7 @@ public class FieldPredicate extends TradePredicate {
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
     @SuppressWarnings("unchecked")
-    private static Predicate<?> getPredicate(Field<TradeWrapper, ?> field, String input) {
+    private static Predicate<?> getPredicate(FieldAccessor<TradeWrapper, ?, ?> field, String input) {
         Class<?> clazz = field.clazz;
         String trimmed = input.trim();
         if (clazz == Boolean.class) {
@@ -142,13 +147,13 @@ public class FieldPredicate extends TradePredicate {
                     Pattern pattern = Pattern.compile(operand);
                     return obj -> pattern.matcher((String) obj).matches();
             }
-        } else if (field instanceof MapField) {
+        } else if (field.child instanceof MapField) {
             Matcher matcher = MAP_PATTERN.matcher(trimmed);
             if (!matcher.matches()) {
                 throw new IllegalArgumentException("Can only check for keys in a map");
             }
             String key = matcher.group(1);
-            Object translatedKey = ((MapField<TradeWrapper, ?, ?>) field).translateKey(key);
+            Object translatedKey = ((MapField<?,?,?>) field.child).translateKey(key);
             return translatedKey != null ? obj -> ((Map<?, ?>) obj).containsKey(translatedKey) : obj -> false;
         } else if (clazz == Villager.class) {
             Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(trimmed);
@@ -159,13 +164,16 @@ public class FieldPredicate extends TradePredicate {
                     BalancedVillagerTrades.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Fields#villager-properties " +
                             "for a better way to target specific villagers.");
                 }
-                Field<?, ?> property = ((ComplexField<TradeWrapper, ?>) field).getField(matcher.group(1));
-                //noinspection ConstantConditions
-                Predicate<?> predicate = getPredicate((Field) property, matcher.group(2) + matcher.group(3));
-                return obj -> ((Predicate) predicate).test(((Field) property).get(obj));
+                String fieldName = matcher.group(1);
+                FieldAccessor<TradeWrapper, ?, ?> property = field.getFieldWrapped(fieldName);
+                Field<?, ?> rawField = field.getField(fieldName);
+                @SuppressWarnings("ConstantConditions")
+                Predicate<?> predicate = getPredicate(property, matcher.group(2) + matcher.group(3));
+                // noinspection ConstantConditions,rawtypes
+                return obj -> ((Predicate) predicate).test(((Field) rawField).get(obj));
             }
         }
-        throw new IllegalArgumentException("Don't know how to handle " + clazz.getSimpleName() + " fields");
+        throw new IllegalArgumentException("Don't know how to test against " + field.fieldName + " (type=" + clazz.getSimpleName() + ")");
     }
 
     public static List<FieldPredicate> parse(Map<String, Object> map) {

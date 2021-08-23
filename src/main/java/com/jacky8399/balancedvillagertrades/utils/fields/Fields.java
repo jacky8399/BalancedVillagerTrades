@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,23 +50,41 @@ public class Fields {
             .put("villager", new VillagerField())
             .build();
 
-    @SuppressWarnings("unchecked")
+    public static final ComplexField<TradeWrapper, TradeWrapper> ROOT_FIELD =
+            new ComplexField<TradeWrapper, TradeWrapper>(TradeWrapper.class, Function.identity(), null) {
+                @Override
+                public @Nullable Field<TradeWrapper, ?> getField(String fieldName) {
+                    return FIELDS.get(fieldName);
+                }
+
+                @Override
+                public @Nullable Collection<String> getFields(@Nullable TradeWrapper tradeWrapper) {
+                    return FIELDS.keySet();
+                }
+
+                @Override
+                public String toString() {
+                    return "RootField";
+                }
+            };
+
     @NotNull
-    public static Field<TradeWrapper, ?> findField(@Nullable ComplexField<TradeWrapper, ?> root, String path, boolean recursive) {
+    public static FieldAccessor<TradeWrapper, ?, ?> findField(@Nullable ComplexField<TradeWrapper, ?> root, String path, boolean recursive) {
+        if (root == null)
+            root = ROOT_FIELD;
+
         if (!recursive) {
-            Field<TradeWrapper, ?> field = root != null ? root.getFieldWrapped(path) : FIELDS.get(path);
+            FieldAccessor<TradeWrapper, ?, ?> field = root.getFieldWrapped(path);
             if (field == null)
                 throw new IllegalArgumentException("Can't access " + path + " because it does not exist");
             return field;
         }
         String[] paths = path.split("\\.");
-        Field<TradeWrapper, ?> field = root;
+        FieldAccessor<TradeWrapper, ?, ?> field = FieldAccessor.emptyAccessor(root);
         StringBuilder pathName = new StringBuilder("root");
         for (String child : paths) {
-            if (field == null) {
-                field = FIELDS.get(child);
-            } else if (field instanceof ComplexField) {
-                field = ((ComplexField<TradeWrapper, ?>) field).getFieldWrapped(child);
+            if (field.isComplex()) {
+                field = field.getFieldWrapped(child);
             } else {
                 throw new IllegalArgumentException("Can't access " + path + " because " + pathName + " does not have fields");
             }
@@ -74,7 +93,7 @@ public class Fields {
             }
             pathName.append('.').append(child);
         }
-        if (field == null) {
+        if (field == ROOT_FIELD) {
             throw new IllegalArgumentException(pathName + " does not have field " + path);
         }
         return field;

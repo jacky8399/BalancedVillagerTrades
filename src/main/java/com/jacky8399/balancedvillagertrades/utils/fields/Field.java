@@ -2,7 +2,6 @@ package com.jacky8399.balancedvillagertrades.utils.fields;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -31,26 +30,14 @@ public class Field<TOwner, TField> {
             setter.accept(owner, value);
     }
 
-    public <TInner> Field<TOwner, TInner> andThen(Field<TField, TInner> field) {
+    public <TInner> FieldAccessor<TOwner, TField, TInner> andThen(Field<TField, TInner> field) {
         if (field == null)
             return null;
-        Function<TOwner, TInner> newGetter = getter.andThen(field.getter);
-        BiConsumer<TOwner, TInner> newSetter = field.setter != null ? (owner, newVal) -> {
-            TField instance = get(owner);
-            field.set(instance, newVal);
-            set(owner, instance);
-        } : null;
-        return field instanceof ComplexField ? new ComplexField<TOwner, TInner>(field.clazz, newGetter, newSetter) {
-            @Override
-            public @Nullable Field<TInner, ?> getField(String fieldName) {
-                return ((ComplexField<TField, TInner>) field).getField(fieldName);
-            }
-
-            @Override
-            public @Nullable Collection<String> getFields(@Nullable TOwner owner) {
-                return ((ComplexField<TField, TInner>) field).getFields(owner != null ? Field.this.get(owner) : null);
-            }
-        } : new Field<>(field.clazz, newGetter, newSetter);
+        return new FieldAccessor<>(this, field, null);
     }
 
+    @Override
+    public String toString() {
+        return "Field{type=" + clazz.getSimpleName() + "}";
+    }
 }
