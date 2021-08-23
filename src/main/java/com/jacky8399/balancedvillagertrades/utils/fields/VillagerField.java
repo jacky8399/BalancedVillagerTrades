@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades.utils.fields;
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -24,6 +25,16 @@ class VillagerField extends ComplexField<TradeWrapper, Villager> {
             .put("experience", Field.readOnlyField(Integer.class, Villager::getVillagerExperience))
             .put("recipe-count", Field.readOnlyField(Integer.class, Merchant::getRecipeCount))
             .put("inventory", new InventoryField())
+            .put("world", ComplexField.withFields(World.class, Villager::getWorld, null, ImmutableMap.<String, Field<World, ?>>builder()
+                    .put("name", Field.readOnlyField(String.class, World::getName))
+                    .put("environment", Field.readOnlyField(String.class, world -> world.getEnvironment().name()))
+                    .put("time", Field.readOnlyField(Integer.class, world -> (int) world.getTime()))
+                    .put("full-time", Field.readOnlyField(Integer.class, world -> (int) world.getFullTime()))
+                    .put("is-day-time", Field.readOnlyField(Boolean.class, World::isDayTime))
+                    .put("weather", Field.readOnlyField(String.class,
+                            world -> world.isThundering() ? "thunder" : world.hasStorm() ? "rain" : "clear"))
+                    .build()
+            ))
             .build();
 
     public VillagerField() {

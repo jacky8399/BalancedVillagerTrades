@@ -66,7 +66,7 @@ public class ActionSet extends Action {
                         if (field.setter == null) {
                             BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " is read-only! Assigning new values to it will have no effect.");
                         }
-                        UnaryOperator<?> operator = getTransformer(field.clazz, value.toString());
+                        UnaryOperator<?> operator = getTransformer(field.clazz, value != null ? value.toString() : null);
                         return Stream.of(new ActionSet(fieldName + " to " + value, field, operator));
                     }
                 });
@@ -76,7 +76,14 @@ public class ActionSet extends Action {
         return parse(null, null, map).collect(Collectors.toList());
     }
 
-    public static UnaryOperator<?> getTransformer(Class<?> clazz, String input) {
+    public static UnaryOperator<?> getTransformer(Class<?> clazz, @Nullable String input) {
+        if (input == null) {
+            if (clazz == Boolean.class) {
+                return oldVal -> false;
+            } else if (clazz == Integer.class) {
+                return oldVal -> 0;
+            } else return oldVal -> null;
+        }
         String trimmed = input.trim();
         if (clazz == Boolean.class) {
             boolean bool = Boolean.parseBoolean(trimmed);
