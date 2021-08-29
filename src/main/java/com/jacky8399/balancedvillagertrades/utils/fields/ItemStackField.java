@@ -62,15 +62,15 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
                     is -> is.getType().getKey().toString(),
                     (is, newType) -> is.setType(Objects.requireNonNull(Material.matchMaterial(newType)))))
             .put("enchantments", ENCHANTMENT_FIELD)
-            .put("damage", META_FIELD.andThen(new Field<>(Integer.class,
+            .put("damage", META_FIELD.chain(new Field<>(Integer.class,
                     meta -> meta instanceof Damageable ? ((Damageable) meta).getDamage() : 0,
                     (meta, damage) -> {
                         if (meta instanceof Damageable)
                             ((Damageable) meta).setDamage(damage);
                     })))
-            .put("name", META_FIELD.andThen(new Field<>(String.class,
+            .put("name", META_FIELD.chain(new Field<>(String.class,
                     ItemMeta::getDisplayName, ItemMeta::setDisplayName)))
-            .put("unbreakable", META_FIELD.andThen(new Field<>(Boolean.class,
+            .put("unbreakable", META_FIELD.chain(new Field<>(Boolean.class,
                     ItemMeta::isUnbreakable, ItemMeta::setUnbreakable)))
             .build();
 

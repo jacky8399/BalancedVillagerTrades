@@ -5,6 +5,7 @@ import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.utils.fields.ComplexField;
 import com.jacky8399.balancedvillagertrades.utils.fields.Field;
+import com.jacky8399.balancedvillagertrades.utils.fields.FieldAccessor;
 import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -47,7 +48,7 @@ public class ActionSet extends Action {
                 .flatMap(entry -> {
                     String fieldName = entry.getKey();
                     Object value = entry.getValue();
-                    Field<TradeWrapper, ?> field;
+                    FieldAccessor<TradeWrapper, ?, ?> field;
                     try {
                         field = Fields.findField(base, fieldName, true);
                     } catch (IllegalArgumentException e) {
@@ -56,14 +57,14 @@ public class ActionSet extends Action {
                     }
                     fieldName = base != null ? baseName + "." + fieldName : fieldName; // for better error messages
                     if (value instanceof Map) {
-                        if (!(field instanceof ComplexField)) { // complex fields only
+                        if (!field.isComplex()) { // complex fields only
                             BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " does not have inner fields! Skipping.");
                             return Stream.empty();
                         }
                         Map<String, Object> innerMap = (Map<String, Object>) value;
-                        return parse((ComplexField<TradeWrapper, ?>) field, fieldName, innerMap);
+                        return parse(field, fieldName, innerMap);
                     } else {
-                        if (field.setter == null) {
+                        if (field.isReadOnly()) {
                             BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " is read-only! Assigning new values to it will have no effect.");
                         }
                         UnaryOperator<?> operator = getTransformer(field.clazz, value != null ? value.toString() : null);

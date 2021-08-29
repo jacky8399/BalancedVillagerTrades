@@ -133,4 +133,9 @@ public class NMSReputationProvider extends ReputationProvider {
             BalancedVillagerTrades.LOGGER.severe(e.toString());
         }
     }
+
+    @Override
+    public String toString() {
+        return "NMS v" + mappingsVersion;
+    }
 }

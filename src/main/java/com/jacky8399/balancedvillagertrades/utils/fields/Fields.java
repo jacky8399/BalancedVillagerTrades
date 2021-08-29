@@ -116,9 +116,9 @@ public class Fields {
         if (fields != null) {
             return fields.stream()
                     .flatMap(key -> {
-                        Field<TradeWrapper, ?> field = root.getFieldWrapped(key);
-                        if (field instanceof ComplexField) {
-                            return listFields((ComplexField<TradeWrapper, ?>) field, path + "." + key, context)
+                        FieldAccessor<TradeWrapper, ?, ?> field = root.getFieldWrapped(key);
+                        if (field != null && field.isComplex()) {
+                            return listFields(field, path + "." + key, context)
                                     .entrySet().stream();
                         } else {
                             return Stream.of(Maps.immutableEntry(path + "." + key, field));

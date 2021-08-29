@@ -3,9 +3,8 @@ package com.jacky8399.balancedvillagertrades;
 import com.jacky8399.balancedvillagertrades.actions.Action;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.utils.fields.Field;
+import com.jacky8399.balancedvillagertrades.utils.fields.FieldAccessor;
 import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
-import com.jacky8399.balancedvillagertrades.utils.reputation.NMSReputationProvider;
-import com.jacky8399.balancedvillagertrades.utils.reputation.PaperReputationProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -81,19 +80,25 @@ public class CommandBvt implements TabExecutor {
                     return true;
                 }
 
-                List<Entity> entities = Bukkit.selectEntities(sender, args[1]);
+                List<Entity> entities;
+                try {
+                    entities = Bukkit.selectEntities(sender, args[1]);
+                } catch (IllegalArgumentException e) {
+                    sender.sendMessage(ChatColor.RED + "Expected entity selector (" + e.getMessage() + ")");
+                    return true;
+                }
                 if (entities.size() != 1) {
                     sender.sendMessage(ChatColor.RED + "Expected 1 entity, got " + entities.size());
                     return true;
                 }
                 Entity entity = entities.get(0);
                 if (!(entity instanceof Villager)) {
-                    sender.sendMessage(ChatColor.RED + "Expected villager");
+                    sender.sendMessage(ChatColor.RED + "Expected villager, got " + entity.getType().name());
                     return true;
                 }
                 Villager villager = (Villager) entity;
                 TradeWrapper wrapper;
-                if (args.length == 4) {
+                if (args.length >= 4) {
                     try {
                         int recipeId = Integer.parseInt(args[3]);
                         wrapper = new TradeWrapper(villager, villager.getRecipe(recipeId));
@@ -104,15 +109,18 @@ public class CommandBvt implements TabExecutor {
                 } else {
                     wrapper = new TradeWrapper(villager, null);
                 }
-                Field<TradeWrapper, ?> field = Fields.findField(null, args[2], true);
+                FieldAccessor<TradeWrapper, ?, ?> field = Fields.findField(null, args[2], true);
+                // debug accessor
+                if (args.length == 5 && "debugaccessor".equals(args[4])) {
+                    sender.sendMessage(ChatColor.LIGHT_PURPLE + "Field lookup: " + field);
+                }
                 Object value = field.get(wrapper);
                 sender.sendMessage(ChatColor.GREEN + args[2] + " is " + value + " (type=" + value.getClass().getSimpleName() + ")");
                 return true;
             }
         }
         sender.sendMessage(ChatColor.GREEN + "You are using BalancedVillagerTrades v" + BalancedVillagerTrades.INSTANCE.getDescription().getVersion());
-        sender.sendMessage(ChatColor.GREEN + "Using " + (BalancedVillagerTrades.REPUTATION instanceof PaperReputationProvider ?
-                "Paper Reputation API" : "NMS v" + NMSReputationProvider.mappingsVersion));
+        sender.sendMessage(ChatColor.GREEN + "Using " + BalancedVillagerTrades.REPUTATION);
         sender.sendMessage(ChatColor.AQUA + "Loaded recipes: " + Recipe.RECIPES.size());
         return true;
     }
@@ -163,6 +171,8 @@ public class CommandBvt implements TabExecutor {
                     } catch (Exception ignored) {}
                     return Collections.singletonList("0");
                 }
+                case 5:
+                    return Collections.singletonList("debugaccessor");
                 default:
                     return Collections.emptyList();
             }

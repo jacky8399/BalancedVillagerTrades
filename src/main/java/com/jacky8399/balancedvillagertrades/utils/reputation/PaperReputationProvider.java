@@ -22,4 +22,9 @@ public class PaperReputationProvider extends ReputationProvider {
         reputation.setReputation(paperType, reputation.getReputation(paperType) + amount);
         villager.setReputation(uuid, reputation);
     }
+
+    @Override
+    public String toString() {
+        return "Paper villager reputation API";
+    }
 }

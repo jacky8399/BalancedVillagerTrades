@@ -10,7 +10,7 @@ public class FieldAccessor<TOwner, T, TField> extends ComplexField<TOwner, TFiel
     public final Field<T, TField> child;
     public final String fieldName;
     public FieldAccessor(Field<TOwner, T> parent, Field<T, TField> field, @Nullable String fieldName) {
-        super(field.clazz, null, field.setter != null ? ((tOwner, tField) -> {}) : null);
+        super(field.clazz, null, null);
         this.parent = parent;
         this.child = field;
         this.fieldName = fieldName;
@@ -39,8 +39,16 @@ public class FieldAccessor<TOwner, T, TField> extends ComplexField<TOwner, TFiel
     }
 
     @Override
+    public boolean isReadOnly() {
+        return child.isReadOnly();
+    }
+
+    @Override
     public @Nullable Collection<String> getFields(@Nullable TOwner tOwner) {
         if (child instanceof ComplexField) {
+            if (tOwner == null)
+                return ((ComplexField<T, TField>) child).getFields(null);
+
             T intermediate = parent.get(tOwner);
             return (((ComplexField<T, TField>) child).getFields(intermediate));
         }
@@ -82,13 +90,18 @@ public class FieldAccessor<TOwner, T, TField> extends ComplexField<TOwner, TFiel
             }
 
             @Override
+            public boolean isReadOnly() {
+                return field.isReadOnly();
+            }
+
+            @Override
             public String toString() {
                 return "EmptyFieldAccessor{field=" + field + "}";
             }
 
             @Override
             public <TInner> FieldAccessor<TOwner, TField, TInner> andThen(Field<TField, TInner> field1) {
-                return field.andThen(field1);
+                return new FieldAccessor<>(field, field1, null);
             }
 
             @Override

@@ -11,7 +11,7 @@ public class Field<TOwner, TField> {
     @Nullable
     public final BiConsumer<TOwner, TField> setter;
 
-    public Field(Class<TField> clazz, Function<TOwner, TField> getter, BiConsumer<TOwner, TField> setter) {
+    public Field(Class<TField> clazz, Function<TOwner, TField> getter, @Nullable BiConsumer<TOwner, TField> setter) {
         this.clazz = clazz;
         this.getter = getter;
         this.setter = setter;
@@ -30,14 +30,41 @@ public class Field<TOwner, TField> {
             setter.accept(owner, value);
     }
 
+    public boolean isReadOnly() {
+        return setter == null;
+    }
+
     public <TInner> FieldAccessor<TOwner, TField, TInner> andThen(Field<TField, TInner> field) {
         if (field == null)
             return null;
         return new FieldAccessor<>(this, field, null);
     }
 
+    public <TInner> Field<TOwner, TInner> chain(Field<TField, TInner> field) {
+        if (field == null)
+            return null;
+        return new Field<TOwner, TInner>(field.clazz, null, (owner, newValue) -> {}) {
+            @Override
+            public TInner get(TOwner owner) {
+                return field.get(Field.this.get(owner));
+            }
+
+            @Override
+            public void set(TOwner owner, TInner value) {
+                TField val = Field.this.get(owner);
+                field.set(val, value);
+                Field.this.set(owner, val);
+            }
+
+            @Override
+            public boolean isReadOnly() {
+                return field.isReadOnly();
+            }
+        };
+    }
+
     @Override
     public String toString() {
-        return "Field{type=" + clazz.getSimpleName() + "}";
+        return "Field{type=" + clazz.getSimpleName() + ", readonly=" + isReadOnly() + "}";
     }
 }
