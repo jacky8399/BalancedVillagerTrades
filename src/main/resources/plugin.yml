@@ -1,5 +1,5 @@
 name: BalancedVillagerTrades
-version: @version@
+version: '${version}'
 main: com.jacky8399.balancedvillagertrades.BalancedVillagerTrades
 api-version: 1.16
 authors: [ jacky8399 ]
