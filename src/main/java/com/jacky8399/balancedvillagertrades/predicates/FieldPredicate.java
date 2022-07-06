@@ -137,15 +137,15 @@ public class FieldPredicate extends TradePredicate {
             switch (operation.toLowerCase(Locale.ROOT)) {
                 case "=":
                     return caseInsensitive ?
-                            obj -> ((String) obj).equalsIgnoreCase(finalOperand) :
-                            obj -> obj.equals(finalOperand);
+                            obj -> finalOperand.equalsIgnoreCase((String) obj) :
+                            finalOperand::equals;
                 case "contains":
                     return caseInsensitive ?
-                            obj -> ((String) obj).toLowerCase(Locale.ROOT).contains(finalOperand) :
-                            obj -> ((String) obj).contains(finalOperand);
+                            obj -> obj != null && ((String) obj).toLowerCase(Locale.ROOT).contains(finalOperand) :
+                            obj -> obj != null && ((String) obj).contains(finalOperand);
                 case "matches":
                     Pattern pattern = Pattern.compile(operand);
-                    return obj -> pattern.matcher((String) obj).matches();
+                    return obj -> obj != null && pattern.matcher((String) obj).matches();
             }
         } else if (field.child instanceof MapField) {
             Matcher matcher = MAP_PATTERN.matcher(trimmed);

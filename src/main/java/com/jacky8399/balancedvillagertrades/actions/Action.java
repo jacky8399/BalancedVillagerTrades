@@ -29,6 +29,12 @@ public abstract class Action implements Consumer<TradeWrapper> {
                 throw new IllegalArgumentException("Expected list at 'echo' section");
             actions.add(ActionEcho.parse(name, (List<?>) echoList));
         }
+        Object luaString = map.get("lua");
+        if (luaString != null) {
+            if (!(luaString instanceof String string))
+                throw new IllegalArgumentException("Expected string at 'lua' section");
+            actions.add(ActionLua.fromString(string));
+        }
         if (actions.size() == 0)
             throw new IllegalArgumentException("Empty action");
         return actions;

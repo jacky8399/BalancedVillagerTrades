@@ -22,15 +22,14 @@ repositories {
         name = 'sonatype'
         url = 'https://oss.sonatype.org/content/groups/public/'
     }
-
-    mavenLocal()
 }
 
 dependencies {
     paperweightDevelopmentBundle("io.papermc.paper:dev-bundle:1.19-R0.1-SNAPSHOT")
-    compileOnly 'com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
     compileOnly 'org.jetbrains:annotations:23.0.0'
     implementation 'org.bstats:bstats-bukkit:3.0.0'
+    implementation 'org.luaj:luaj-jse:3.0.1'
 }
 
 processResources {
@@ -44,8 +43,8 @@ processResources {
 
 shadowJar {
     relocate 'org.bstats', 'com.jacky8399.balancedvillagertrades.bstats'
+    relocate 'org.luaj', 'com.jacky8399.balancedvillagertrades.luaj'
 }
 
-build {
-    dependsOn shadowJar
-}
+assemble.dependsOn reobfJar
+jar.dependsOn shadowJar

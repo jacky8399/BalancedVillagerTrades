@@ -25,7 +25,7 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
     private static final MapField<ItemStack, Enchantment, Integer> ENCHANTMENT_FIELD = new MapField<>(
             is -> {
                 ItemMeta meta = is.getItemMeta();
-                return new HashMap<>(
+                return new LinkedHashMap<>(
                         meta instanceof EnchantmentStorageMeta ?
                                 ((EnchantmentStorageMeta) meta).getStoredEnchants() :
                                 meta.getEnchants()
@@ -51,7 +51,7 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
                 is.setItemMeta(meta);
             },
             string -> Enchantment.getByKey(NamespacedKey.fromString(string)),
-            Integer.class
+            enchantment -> enchantment.getKey().toString(), Integer.class
     );
 
     public static final ImmutableMap<String, Field<ItemStack, ?>> ITEM_STACK_FIELDS = ImmutableMap.<String, Field<ItemStack, ?>>builder()
@@ -69,7 +69,7 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
                             ((Damageable) meta).setDamage(damage);
                     })))
             .put("name", META_FIELD.chain(new Field<>(String.class,
-                    ItemMeta::getDisplayName, ItemMeta::setDisplayName)))
+                    meta -> meta.hasDisplayName() ? meta.getDisplayName() : null, ItemMeta::setDisplayName)))
             .put("unbreakable", META_FIELD.chain(new Field<>(Boolean.class,
                     ItemMeta::isUnbreakable, ItemMeta::setUnbreakable)))
             .build();

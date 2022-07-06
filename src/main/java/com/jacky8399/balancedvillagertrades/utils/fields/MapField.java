@@ -9,16 +9,23 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class MapField<T, K, V> extends ComplexField<T, Map<K, V>> {
     public final Function<String, K> keyTranslator;
     public final Class<V> valueType;
-    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter, Function<String, @Nullable K> keyTranslator, Class<V> valueType) {
+    public final Function<K, String> keyGetter;
+    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter,
+                    Function<String, @Nullable K> keyTranslator, Class<V> valueType) {
+        this(getter, setter, keyTranslator, null, valueType);
+    }
+
+    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter,
+                    Function<String, @Nullable K> keyTranslator, Function<K, String> keyGetter, Class<V> valueType) {
         super((Class) Map.class, getter, setter);
         this.keyTranslator = keyTranslator;
         this.valueType = valueType;
+        this.keyGetter = keyGetter;
     }
 
     @Nullable
@@ -31,6 +38,21 @@ public class MapField<T, K, V> extends ComplexField<T, Map<K, V>> {
     public @Nullable Field<Map<K, V>, ?> getField(String fieldName) {
         if ("size".equals(fieldName))
             return (Field) SIZE_FIELD;
+        try {
+            int index = Integer.parseInt(fieldName);
+            // allow numeric indices to get the key
+            if (keyGetter != null && index >= 0) {
+                return new Field<>(String.class, map -> {
+                    if (map.size() <= index)
+                        return null;
+                    var iterator = map.entrySet().iterator();
+                    for (int i = 0; i < index; i++) {
+                        iterator.next();
+                    }
+                    return keyGetter.apply(iterator.next().getKey());
+                }, (map, newValue) -> {});
+            }
+        } catch (NumberFormatException ignored) {}
         K key = translateKey(fieldName);
         return key != null ? new Field<>(valueType, map -> map.get(key), (map, newValue) -> map.put(key, newValue)) : null;
     }
@@ -39,7 +61,8 @@ public class MapField<T, K, V> extends ComplexField<T, Map<K, V>> {
     public @Nullable Collection<String> getFields(T owner) {
         if (owner == null)
             return Collections.singletonList("size");
-        return Stream.concat(Stream.of("size"), get(owner).keySet().stream().map(Objects::toString))
+        return get(owner).keySet().stream()
+                .map(keyGetter != null ? keyGetter : Objects::toString)
                 .collect(Collectors.toList());
     }
 }

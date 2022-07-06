@@ -1,6 +1,7 @@
 package com.jacky8399.balancedvillagertrades;
 
 import com.jacky8399.balancedvillagertrades.actions.Action;
+import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.utils.fields.Field;
 import com.jacky8399.balancedvillagertrades.utils.fields.FieldAccessor;
@@ -117,6 +118,14 @@ public class CommandBvt implements TabExecutor {
                 Object value = field.get(wrapper);
                 sender.sendMessage(ChatColor.GREEN + args[2] + " is " + value + " (type=" + value.getClass().getSimpleName() + ")");
                 return true;
+            } else if (args[0].equalsIgnoreCase("script")) {
+                if (args.length == 1) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /bvt script <script>");
+                    return true;
+                }
+                String script = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                ScriptUtils.run(script, null);
+                return true;
             }
         }
         sender.sendMessage(ChatColor.GREEN + "You are using BalancedVillagerTrades v" + BalancedVillagerTrades.INSTANCE.getDescription().getVersion());
@@ -128,7 +137,7 @@ public class CommandBvt implements TabExecutor {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("reload", "recipes", "recipe"/*, "getfield"*/);
+            return Arrays.asList("reload", "recipes", "recipe", "script"/*, "getfield"*/);
         } else if (args[0].equalsIgnoreCase("recipe")) {
             if (args.length == 2) {
                 return new ArrayList<>(Recipe.RECIPES.keySet());

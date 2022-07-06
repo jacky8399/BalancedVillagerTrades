@@ -51,7 +51,7 @@ public class Fields {
             .build();
 
     public static final ComplexField<TradeWrapper, TradeWrapper> ROOT_FIELD =
-            new ComplexField<TradeWrapper, TradeWrapper>(TradeWrapper.class, Function.identity(), null) {
+            new ComplexField<>(TradeWrapper.class, Function.identity(), null) {
                 @Override
                 public @Nullable Field<TradeWrapper, ?> getField(String fieldName) {
                     return FIELDS.get(fieldName);
