@@ -1,6 +1,5 @@
-package com.jacky8399.balancedvillagertrades.utils.fields;
+package com.jacky8399.balancedvillagertrades.fields;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.inventory.ItemStack;
@@ -13,32 +12,32 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Map.entry;
+
 public class Fields {
-    public static final ImmutableMap<String, Field<TradeWrapper, ?>> FIELDS = ImmutableMap.<String, Field<TradeWrapper, ?>>builder()
-            .put("apply-discounts", new Field<>(Boolean.class,
+    public static final Map<String, Field<TradeWrapper, ?>> FIELDS = Map.ofEntries(
+            entry("apply-discounts", new SimpleField<>(Boolean.class,
                     trade -> trade.getRecipe().getPriceMultiplier() != 0,
-                    (trade, bool) -> trade.getRecipe().setPriceMultiplier(bool ? 1 : 0)))
-            .put("max-uses", new Field<>(Integer.class,
+                    (trade, bool) -> trade.getRecipe().setPriceMultiplier(bool ? 1 : 0))),
+            entry("max-uses", new SimpleField<>(Integer.class,
                     trade -> trade.getRecipe().getMaxUses(),
-                    (trade, maxUses) -> trade.getRecipe().setMaxUses(maxUses)))
-            .put("uses", new Field<>(Integer.class,
+                    (trade, maxUses) -> trade.getRecipe().setMaxUses(maxUses))),
+            entry("uses", new SimpleField<>(Integer.class,
                     trade -> trade.getRecipe().getUses(),
-                    (trade, maxUses) -> trade.getRecipe().setUses(maxUses)))
-            .put("award-experience", new Field<>(Boolean.class,
+                    (trade, maxUses) -> trade.getRecipe().setUses(maxUses))),
+            entry("award-experience", new SimpleField<>(Boolean.class,
                     trade -> trade.getRecipe().hasExperienceReward(),
-                    (trade, awardXP) -> trade.getRecipe().setExperienceReward(awardXP)))
-            .put("villager-experience", new Field<>(Integer.class,
+                    (trade, awardXP) -> trade.getRecipe().setExperienceReward(awardXP))),
+            entry("villager-experience", new SimpleField<>(Integer.class,
                     trade -> trade.getRecipe().getVillagerExperience(),
-                    (trade, villagerXP) -> trade.getRecipe().setVillagerExperience(villagerXP)))
-            .put("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex))
-            .put("new-recipe", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))
-            .put("ingredient-0", new ItemStackField<>(
+                    (trade, villagerXP) -> trade.getRecipe().setVillagerExperience(villagerXP))),
+            entry("ingredient-0", new ItemStackField<>(
                     trade -> trade.getRecipe().getIngredients().get(0),
-                    (trade, stack) -> setIngredient(0, trade, stack)))
-            .put("ingredient-1", new ItemStackField<>(
+                    (trade, stack) -> setIngredient(0, trade, stack))),
+            entry("ingredient-1", new ItemStackField<>(
                     trade -> trade.getRecipe().getIngredients().get(1),
-                    (trade, stack) -> setIngredient(1, trade, stack)))
-            .put("result", new ItemStackField<>(
+                    (trade, stack) -> setIngredient(1, trade, stack))),
+            entry("result", new ItemStackField<>(
                     trade -> trade.getRecipe().getResult(),
                     (trade, stack) -> {
                         MerchantRecipe oldRecipe = trade.getRecipe();
@@ -48,22 +47,14 @@ public class Fields {
                                 oldRecipe.getPriceMultiplier());
                         newRecipe.setIngredients(oldRecipe.getIngredients());
                         trade.setRecipe(newRecipe);
-                    }))
-            .put("villager", new VillagerField())
-            .build();
+                    })),
+            entry("villager", new VillagerField()),
+            entry("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex)),
+            entry("is-new", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))
+    );
 
-    public static final ComplexField<TradeWrapper, TradeWrapper> ROOT_FIELD =
-            new ComplexField<>(TradeWrapper.class, Function.identity(), null) {
-                @Override
-                public @Nullable Field<TradeWrapper, ?> getField(String fieldName) {
-                    return FIELDS.get(fieldName);
-                }
-
-                @Override
-                public @Nullable Collection<String> getFields(@Nullable TradeWrapper tradeWrapper) {
-                    return FIELDS.keySet();
-                }
-
+    public static final ContainerField<TradeWrapper, TradeWrapper> ROOT_FIELD =
+            new SimpleContainerField<>(TradeWrapper.class, Function.identity(), null, FIELDS) {
                 @Override
                 public String toString() {
                     return "RootField";
@@ -71,18 +62,18 @@ public class Fields {
             };
 
     @NotNull
-    public static FieldAccessor<TradeWrapper, ?, ?> findField(@Nullable ComplexField<TradeWrapper, ?> root, String path, boolean recursive) {
+    public static FieldProxy<TradeWrapper, ?, ?> findField(@Nullable ContainerField<TradeWrapper, ?> root, String path, boolean recursive) {
         if (root == null)
             root = ROOT_FIELD;
 
         if (!recursive) {
-            FieldAccessor<TradeWrapper, ?, ?> field = root.getFieldWrapped(path);
+            FieldProxy<TradeWrapper, ?, ?> field = root.getFieldWrapped(path);
             if (field == null)
                 throw new IllegalArgumentException("Can't access " + path + " because it does not exist");
             return field;
         }
         String[] paths = path.split("\\.");
-        FieldAccessor<TradeWrapper, ?, ?> field = FieldAccessor.emptyAccessor(root);
+        FieldProxy<TradeWrapper, ?, ?> field = FieldProxy.emptyAccessor(root);
         StringBuilder pathName = new StringBuilder("root");
         for (String child : paths) {
             if (field.isComplex()) {
@@ -102,13 +93,13 @@ public class Fields {
     }
 
     @NotNull
-    public static Map<String, ? extends Field<TradeWrapper, ?>> listFields(@Nullable ComplexField<TradeWrapper, ?> root, @Nullable String path, @Nullable TradeWrapper context) {
+    public static Map<String, ? extends Field<TradeWrapper, ?>> listFields(@Nullable ContainerField<TradeWrapper, ?> root, @Nullable String path, @Nullable TradeWrapper context) {
         if (root == null) {
             return FIELDS.entrySet().stream()
                     .flatMap(entry -> {
                         Field<TradeWrapper, ?> field = entry.getValue();
-                        if (field instanceof ComplexField)
-                            return listFields((ComplexField<TradeWrapper, ?>) field, entry.getKey(), context)
+                        if (field instanceof ContainerField)
+                            return listFields((ContainerField<TradeWrapper, ?>) field, entry.getKey(), context)
                                     .entrySet().stream();
                         return Stream.of(Maps.immutableEntry(entry.getKey(), field));
                     })
@@ -118,7 +109,7 @@ public class Fields {
         if (fields != null) {
             return fields.stream()
                     .flatMap(key -> {
-                        FieldAccessor<TradeWrapper, ?, ?> field = root.getFieldWrapped(key);
+                        FieldProxy<TradeWrapper, ?, ?> field = root.getFieldWrapped(key);
                         if (field != null && field.isComplex()) {
                             return listFields(field, path + "." + key, context)
                                     .entrySet().stream();

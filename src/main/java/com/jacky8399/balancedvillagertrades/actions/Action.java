@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 public abstract class Action implements Consumer<TradeWrapper> {
     @SuppressWarnings("unchecked")
-    public static List<? extends Action> getFromMap(String name, Map<String, Object> map) throws IllegalArgumentException {
+    public static List<Action> getFromMap(String name, Map<String, Object> map) throws IllegalArgumentException {
         List<Action> actions = new ArrayList<>();
         Object setMap = map.get("set");
         if (setMap != null) {

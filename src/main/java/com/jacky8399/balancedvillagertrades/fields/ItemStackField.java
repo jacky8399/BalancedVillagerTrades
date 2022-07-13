@@ -1,4 +1,4 @@
-package com.jacky8399.balancedvillagertrades.utils.fields;
+package com.jacky8399.balancedvillagertrades.fields;
 
 import com.google.common.collect.ImmutableMap;
 import org.bukkit.Material;
@@ -14,13 +14,13 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class ItemStackField<T> extends ComplexField<T, ItemStack> {
+public class ItemStackField<T> extends SimpleField<T, ItemStack> implements ContainerField<T, ItemStack> {
     public ItemStackField(Function<T, ItemStack> getter, BiConsumer<T, ItemStack> setter) {
         super(ItemStack.class, getter, setter);
     }
 
     // I'm lazy
-    private static final Field<ItemStack, ItemMeta> META_FIELD = FieldAccessor.emptyAccessor(new Field<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta));
+    private static final Field<ItemStack, ItemMeta> META_FIELD = FieldProxy.emptyAccessor(new SimpleField<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta));
 
     private static final MapField<ItemStack, Enchantment, Integer> ENCHANTMENT_FIELD = new MapField<>(
             is -> {
@@ -55,22 +55,22 @@ public class ItemStackField<T> extends ComplexField<T, ItemStack> {
     );
 
     public static final ImmutableMap<String, Field<ItemStack, ?>> ITEM_STACK_FIELDS = ImmutableMap.<String, Field<ItemStack, ?>>builder()
-            .put("amount", new Field<>(Integer.class,
+            .put("amount", new SimpleField<>(Integer.class,
                     ItemStack::getAmount,
                     ItemStack::setAmount))
-            .put("type", new Field<>(String.class,
+            .put("type", new SimpleField<>(String.class,
                     is -> is.getType().getKey().toString(),
                     (is, newType) -> is.setType(Objects.requireNonNull(Material.matchMaterial(newType)))))
             .put("enchantments", ENCHANTMENT_FIELD)
-            .put("damage", META_FIELD.chain(new Field<>(Integer.class,
-                    meta -> meta instanceof Damageable ? ((Damageable) meta).getDamage() : 0,
+            .put("damage", META_FIELD.chain(new SimpleField<>(Integer.class,
+                    meta -> meta instanceof Damageable damageable ? damageable.getDamage() : 0,
                     (meta, damage) -> {
-                        if (meta instanceof Damageable)
-                            ((Damageable) meta).setDamage(damage);
+                        if (meta instanceof Damageable damageable)
+                            damageable.setDamage(damage);
                     })))
-            .put("name", META_FIELD.chain(new Field<>(String.class,
+            .put("name", META_FIELD.chain(new SimpleField<>(String.class,
                     meta -> meta.hasDisplayName() ? meta.getDisplayName() : null, ItemMeta::setDisplayName)))
-            .put("unbreakable", META_FIELD.chain(new Field<>(Boolean.class,
+            .put("unbreakable", META_FIELD.chain(new SimpleField<>(Boolean.class,
                     ItemMeta::isUnbreakable, ItemMeta::setUnbreakable)))
             .build();
 

@@ -1,9 +1,9 @@
 package com.jacky8399.balancedvillagertrades.utils;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.fields.ComplexField;
-import com.jacky8399.balancedvillagertrades.utils.fields.Field;
-import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
+import com.jacky8399.balancedvillagertrades.fields.ContainerField;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.Fields;
 import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
@@ -84,8 +84,8 @@ public class ScriptUtils {
 
     static class FieldWrapper extends LuaTable {
         private final TradeWrapper trade;
-        private final ComplexField<TradeWrapper, ?> field;
-        FieldWrapper(TradeWrapper trade, ComplexField<TradeWrapper, ?> field) {
+        private final ContainerField<TradeWrapper, ?> field;
+        FieldWrapper(TradeWrapper trade, ContainerField<TradeWrapper, ?> field) {
             this.trade = trade;
             this.field = field;
         }
@@ -119,7 +119,7 @@ public class ScriptUtils {
             String fieldName = key.checkjstring().replace('_', '-');
             var child = (Field) field.getFieldWrapped(fieldName);
             if (child != null) {
-                Class<?> clazz = child.clazz;
+                Class<?> clazz = child.getFieldClass();
                 if (clazz == String.class) {
                     child.set(trade, value.checkjstring());
                 } else if (clazz == Integer.class) {

@@ -3,9 +3,9 @@ package com.jacky8399.balancedvillagertrades;
 import com.jacky8399.balancedvillagertrades.actions.Action;
 import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import com.jacky8399.balancedvillagertrades.utils.fields.Field;
-import com.jacky8399.balancedvillagertrades.utils.fields.FieldAccessor;
-import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
+import com.jacky8399.balancedvillagertrades.fields.Fields;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -77,7 +77,7 @@ public class CommandBvt implements TabExecutor {
                     Map<String, ? extends Field<TradeWrapper, ?>> fieldMap =
                             new TreeMap<>(Fields.listFields(null, null, null));
                     sender.sendMessage(ChatColor.GREEN + "Fields:");
-                    fieldMap.forEach((key, value) -> sender.sendMessage(ChatColor.YELLOW + "  " + key + " (type: " + value.clazz.getSimpleName() + ")"));
+                    fieldMap.forEach((key, value) -> sender.sendMessage(ChatColor.YELLOW + "  " + key + " (type: " + value.getFieldClass().getSimpleName() + ")"));
                     return true;
                 }
 
@@ -110,7 +110,7 @@ public class CommandBvt implements TabExecutor {
                 } else {
                     wrapper = new TradeWrapper(villager, null, -1, false);
                 }
-                FieldAccessor<TradeWrapper, ?, ?> field = Fields.findField(null, args[2], true);
+                FieldProxy<TradeWrapper, ?, ?> field = Fields.findField(null, args[2], true);
                 // debug accessor
                 if (args.length == 5 && "debugaccessor".equals(args[4])) {
                     sender.sendMessage(ChatColor.LIGHT_PURPLE + "Field lookup: " + field);
@@ -163,7 +163,8 @@ public class CommandBvt implements TabExecutor {
                     try {
                         List<Entity> entities = Bukkit.selectEntities(sender, args[1]);
                         if (entities.size() == 1 && entities.get(0) instanceof Villager) {
-                            return new ArrayList<>(Fields.listFields(null, null, new TradeWrapper((Villager) entities.get(0), null, -1, false)).keySet());
+                            var tempWrapper = new TradeWrapper((Villager) entities.get(0), null, -1, false);
+                            return new ArrayList<>(Fields.listFields(null, null, tempWrapper).keySet());
                         }
                     } catch (Exception ignored) {}
                     return new ArrayList<>(Fields.listFields(null, null, null).keySet());

@@ -12,7 +12,7 @@ public class Recipe {
 
     public boolean ignoreRemoved = false;
     public TradePredicate predicate;
-    public List<? extends Action> actions;
+    public List<Action> actions;
 
     public final String name;
     public String desc;

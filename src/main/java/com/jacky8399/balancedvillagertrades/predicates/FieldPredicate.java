@@ -1,29 +1,22 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
+import com.jacky8399.balancedvillagertrades.fields.*;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import com.jacky8399.balancedvillagertrades.utils.fields.*;
-import org.bukkit.entity.Villager;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.function.IntPredicate;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FieldPredicate extends TradePredicate {
     public final String desc;
     public final Field<TradeWrapper, ?> field;
-    public final Predicate<?> predicate;
-    public FieldPredicate(String desc, Field<TradeWrapper, ?> field, Predicate<?> predicate) {
+    public final BiPredicate<TradeWrapper, ?> predicate;
+    public FieldPredicate(String desc, Field<TradeWrapper, ?> field, BiPredicate<TradeWrapper, ?> predicate) {
         this.desc = desc;
         this.field = field;
         this.predicate = predicate;
@@ -38,17 +31,17 @@ public class FieldPredicate extends TradePredicate {
     @Override
     public boolean test(TradeWrapper tradeWrapper) {
         Object value = field.get(tradeWrapper);
-        return value != null && ((Predicate) predicate).test(value);
+        return value != null && ((BiPredicate) predicate).test(tradeWrapper, value);
     }
 
     private static final Field<TradeWrapper, TradeWrapper> IDENTITY_FIELD = Field.readOnlyField(TradeWrapper.class, Function.identity());
     @SuppressWarnings("unchecked")
-    private static Stream<FieldPredicate> parse(@Nullable ComplexField<TradeWrapper, ?> base, @Nullable String baseName, Map<String, Object> map) {
+    private static Stream<FieldPredicate> parse(@Nullable ContainerField<TradeWrapper, ?> base, @Nullable String baseName, Map<String, Object> map) {
         return map.entrySet().stream()
                 .flatMap(entry -> {
                     String fieldName = entry.getKey();
                     Object value = entry.getValue();
-                    FieldAccessor<TradeWrapper, ?, ?> field;
+                    FieldProxy<TradeWrapper, ?, ?> field;
                     try {
                         field = Fields.findField(base, fieldName, true);
                     } catch (IllegalArgumentException e) {
@@ -70,16 +63,16 @@ public class FieldPredicate extends TradePredicate {
                             }
                             TradePredicate predicate = TradePredicate.CONSTRUCTORS.get(fieldName).apply(innerMap);
                             return Stream.of(new FieldPredicate(predicate.toString(),
-                                    IDENTITY_FIELD, obj -> predicate.test((TradeWrapper) obj)));
+                                    IDENTITY_FIELD, (tradeWrapper, obj) -> predicate.test(tradeWrapper)));
                         }
                         return parse(field, fieldName, innerMap);
                     } else {
                         try {
-                            Predicate<?> predicate;
+                            BiPredicate<TradeWrapper, ?> predicate;
                             if (value != null)
                                 predicate = getPredicate(field, value.toString());
                             else
-                                predicate = Objects::isNull;
+                                predicate = (tradeWrapper, obj) -> obj == null;
                             return Stream.of(new FieldPredicate(fieldName + ": " + value, field, predicate));
                         } catch (IllegalArgumentException e) {
                             BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping");
@@ -89,91 +82,16 @@ public class FieldPredicate extends TradePredicate {
                 });
     }
 
-    private static final Pattern STRING_PATTERN = Pattern.compile("^(==?|contains|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MAP_PATTERN = Pattern.compile("^contains\\s*(.+)$", Pattern.CASE_INSENSITIVE);
     private static boolean warnOldItemSyntax = true;
-    private static boolean warnOldVillagerSyntax = true;
 
-    private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
-
-    @SuppressWarnings("unchecked")
-    private static Predicate<?> getPredicate(FieldAccessor<TradeWrapper, ?, ?> field, String input) {
-        Class<?> clazz = field.clazz;
+    public static BiPredicate<TradeWrapper, ?> getPredicate(FieldProxy<TradeWrapper, ?, ?> field, String input) {
+        Class<?> clazz = field.getFieldClass();
         String trimmed = input.trim();
-        if (clazz == Boolean.class) {
-            Boolean value = trimmed.toLowerCase(Locale.ROOT).contains("true");
-            return obj -> obj == value;
-        } else if (clazz == Integer.class) {
-            IntPredicate predicate = OperatorUtils.fromInput(input);
-            if (predicate != null) {
-                return obj -> predicate.test((Integer) obj);
-            } else {
-                try {
-                    int number = Integer.parseInt(input);
-                    return obj -> (Integer) obj == number;
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid comparison expression or integer " + input);
-                }
-            }
-        } else if (clazz == String.class) {
-            Matcher matcher = STRING_PATTERN.matcher(input);
-            if (!matcher.matches()) {
-                return obj -> input.equalsIgnoreCase((String) obj);
-            }
-            String operation = matcher.group(1);
-            String operand = matcher.group(2);
-            boolean caseInsensitive = true;
-            if (operand.startsWith("\"") && (operand.endsWith("\"") || operand.endsWith("\"i"))) {
-                if (operand.endsWith("\"i")) {
-                    operand = operand.substring(1, operand.length() - 2);
-                } else if (operand.endsWith("\"")) {
-                    caseInsensitive = false;
-                    operand = operand.substring(1, operand.length() - 1);
-                } else {
-                    throw new IllegalArgumentException("Expected \" at the end");
-                }
-            }
-            final String finalOperand = operand;
-            switch (operation.toLowerCase(Locale.ROOT)) {
-                case "=":
-                    return caseInsensitive ?
-                            obj -> finalOperand.equalsIgnoreCase((String) obj) :
-                            finalOperand::equals;
-                case "contains":
-                    return caseInsensitive ?
-                            obj -> obj != null && ((String) obj).toLowerCase(Locale.ROOT).contains(finalOperand) :
-                            obj -> obj != null && ((String) obj).contains(finalOperand);
-                case "matches":
-                    Pattern pattern = Pattern.compile(operand);
-                    return obj -> obj != null && pattern.matcher((String) obj).matches();
-            }
-        } else if (field.child instanceof MapField) {
-            Matcher matcher = MAP_PATTERN.matcher(trimmed);
-            if (!matcher.matches()) {
-                throw new IllegalArgumentException("Can only check for keys in a map");
-            }
-            String key = matcher.group(1);
-            Object translatedKey = ((MapField<?,?,?>) field.child).translateKey(key);
-            return translatedKey != null ? obj -> ((Map<?, ?>) obj).containsKey(translatedKey) : obj -> false;
-        } else if (clazz == Villager.class) {
-            Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(trimmed);
-            if (matcher.matches()) {
-                if (warnOldVillagerSyntax) {
-                    warnOldVillagerSyntax = false;
-                    BalancedVillagerTrades.LOGGER.warning("Using 'villager: profession/type ...' to target villagers is obsolete.");
-                    BalancedVillagerTrades.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Fields#villager-properties " +
-                            "for a better way to target specific villagers.");
-                }
-                String fieldName = matcher.group(1);
-                FieldAccessor<TradeWrapper, ?, ?> property = field.getFieldWrapped(fieldName);
-                Field<?, ?> rawField = field.getField(fieldName);
-                @SuppressWarnings("ConstantConditions")
-                Predicate<?> predicate = getPredicate(property, matcher.group(2) + matcher.group(3));
-                // noinspection ConstantConditions,rawtypes
-                return obj -> ((Predicate) predicate).test(((Field) rawField).get(obj));
-            }
+        try {
+            return field.parsePredicate(trimmed);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Don't know how to test against " + field.fieldName + " (type=" + clazz.getSimpleName() + ")", ex);
         }
-        throw new IllegalArgumentException("Don't know how to test against " + field.fieldName + " (type=" + clazz.getSimpleName() + ")");
     }
 
     public static List<FieldPredicate> parse(Map<String, Object> map) {
