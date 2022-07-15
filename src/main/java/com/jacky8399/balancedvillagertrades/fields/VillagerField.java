@@ -58,7 +58,6 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
 
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public @NotNull BiPredicate<TradeWrapper, Villager> parsePredicate(String input) throws IllegalArgumentException {
         Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(input);
@@ -70,7 +69,7 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
                         "for a better way to target specific villagers.");
             }
             String fieldName = matcher.group(1);
-            ContainerField<Villager, String> field = getFieldUnsafe(fieldName);
+            Field<Villager, String> field = getFieldUnsafe(fieldName);
             var predicate = field.parsePredicate(matcher.group(2) + matcher.group(3));
             return (tradeWrapper, value) -> {
                 var intermediate = field.get(value);

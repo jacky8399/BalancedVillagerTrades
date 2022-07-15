@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
+import org.luaj.vm2.LuaError;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -124,7 +125,12 @@ public class CommandBvt implements TabExecutor {
                     return true;
                 }
                 String script = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-                ScriptUtils.run(script, null);
+                try {
+                    ScriptUtils.run(script, null);
+                } catch (LuaError ex) {
+                    sender.sendMessage(ChatColor.RED + "[Script Error] " + ex);
+                    ex.printStackTrace();
+                }
                 return true;
             }
         }

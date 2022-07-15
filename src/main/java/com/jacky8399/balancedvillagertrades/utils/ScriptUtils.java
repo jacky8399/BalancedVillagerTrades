@@ -18,6 +18,7 @@ public class ScriptUtils {
     private static final Logger LOGGER = BalancedVillagerTrades.LOGGER;
 
     private static void redirectOutput(Globals globals) {
+        // TODO fix
         globals.STDOUT = new PrintStream(new ByteArrayOutputStream(), true) {
             @Override
             public void flush() {
@@ -55,7 +56,7 @@ public class ScriptUtils {
         globals.set("enchantments", enchantments);
     }
 
-    public static void run(String script, @Nullable TradeWrapper trade) {
+    public static void run(String script, @Nullable TradeWrapper trade) throws LuaError {
         var globals = new Globals();
         globals.load(new BaseLib());
         globals.finder = filename -> null;
@@ -72,14 +73,8 @@ public class ScriptUtils {
         if (trade != null) {
             globals.set("trade", new FieldWrapper(trade, Fields.ROOT_FIELD));
         }
-        try {
-            var chunk = globals.load(script);
-            chunk.call();
-//            if (!returnValue.isnil())
-//                LOGGER.info("[Script Result] " + returnValue.tojstring());
-        } catch (LuaError ex) {
-            LOGGER.warning("[Script Error] " + ex);
-        }
+        var chunk = globals.load(script);
+        chunk.call();
     }
 
     static class FieldWrapper extends LuaTable {
@@ -107,6 +102,8 @@ public class ScriptUtils {
                     return LuaValue.valueOf(num);
                 } else if (value instanceof Boolean bool) {
                     return LuaValue.valueOf(bool);
+                } else if (value == null) {
+                    return LuaValue.NIL;
                 } else {
                     return LuaValue.valueOf(value.toString());
                 }
@@ -168,7 +165,7 @@ public class ScriptUtils {
 
         @Override
         public LuaValue tostring() {
-            return LuaValue.valueOf("Field{" + field.toString() + "}");
+            return LuaValue.valueOf("LuaWrapper{" + field.toString() + "}");
         }
     }
 }

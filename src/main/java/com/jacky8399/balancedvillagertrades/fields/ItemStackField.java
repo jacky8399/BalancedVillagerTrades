@@ -83,4 +83,9 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
     public @Nullable Collection<String> getFields(T t) {
         return ITEM_STACK_FIELDS.keySet();
     }
+
+    @Override
+    public String toString() {
+        return "ItemStackField";
+    }
 }

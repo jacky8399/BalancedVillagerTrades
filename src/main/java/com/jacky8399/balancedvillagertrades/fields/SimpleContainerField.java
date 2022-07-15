@@ -53,4 +53,9 @@ public class SimpleContainerField<TOwner, TField> extends SimpleField<TOwner, TF
     public @Nullable Collection<String> getFields(@Nullable TOwner tOwner) {
         return fields.keySet();
     }
+
+    @Override
+    public String toString() {
+        return "SimpleContainerField{type=" + clazz.getSimpleName() + ", readonly=" + isReadOnly() + "}";
+    }
 }

@@ -91,7 +91,7 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
 
     @Override
     public String toString() {
-        return "FieldAccessor{parent=" + parent + ", child=" + child + ", fieldName=" + fieldName + "}";
+        return "FieldProxy{parent=" + parent + ", child=" + child + ", fieldName=" + fieldName + "}";
     }
 
 
@@ -114,7 +114,7 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
 
             @Override
             public String toString() {
-                return "EmptyFieldAccessor{field=" + field + "}";
+                return "EmptyFieldProxy{field=" + field + "}";
             }
 
             @Override

@@ -44,4 +44,9 @@ public class TradeWrapper {
     public void setRemove(boolean remove) {
         this.remove = remove;
     }
+
+    @Override
+    public String toString() {
+        return "TradeWrapper{villager=" + villager + ",index=" + index + ",recipe=" + recipe + "}";
+    }
 }

@@ -120,6 +120,6 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
 
     @Override
     public String toString() {
-        return "Field{type=" + clazz.getSimpleName() + ", readonly=" + isReadOnly() + "}";
+        return "SimpleField{type=" + clazz.getSimpleName() + ", readonly=" + isReadOnly() + "}";
     }
 }

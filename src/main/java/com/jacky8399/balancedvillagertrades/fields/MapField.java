@@ -113,4 +113,9 @@ public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
     public @NotNull BiFunction<TradeWrapper, Map<K, V>, Map<K, V>> parseTransformer(String input) throws IllegalArgumentException {
         throw new IllegalArgumentException("Cannot modify a map");
     }
+
+    @Override
+    public String toString() {
+        return "MapField";
+    }
 }

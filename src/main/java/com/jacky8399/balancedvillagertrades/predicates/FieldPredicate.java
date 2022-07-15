@@ -76,6 +76,7 @@ public class FieldPredicate extends TradePredicate {
                             return Stream.of(new FieldPredicate(fieldName + ": " + value, field, predicate));
                         } catch (IllegalArgumentException e) {
                             BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping");
+                            e.printStackTrace();
                             return Stream.empty();
                         }
                     }
