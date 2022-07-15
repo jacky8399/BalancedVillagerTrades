@@ -1,9 +1,9 @@
 package com.jacky8399.balancedvillagertrades.utils;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.fields.ComplexField;
-import com.jacky8399.balancedvillagertrades.utils.fields.Field;
-import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
+import com.jacky8399.balancedvillagertrades.fields.ContainerField;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.Fields;
 import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
@@ -18,6 +18,7 @@ public class ScriptUtils {
     private static final Logger LOGGER = BalancedVillagerTrades.LOGGER;
 
     private static void redirectOutput(Globals globals) {
+        // TODO fix
         globals.STDOUT = new PrintStream(new ByteArrayOutputStream(), true) {
             @Override
             public void flush() {
@@ -55,7 +56,7 @@ public class ScriptUtils {
         globals.set("enchantments", enchantments);
     }
 
-    public static void run(String script, @Nullable TradeWrapper trade) {
+    public static void run(String script, @Nullable TradeWrapper trade) throws LuaError {
         var globals = new Globals();
         globals.load(new BaseLib());
         globals.finder = filename -> null;
@@ -72,20 +73,14 @@ public class ScriptUtils {
         if (trade != null) {
             globals.set("trade", new FieldWrapper(trade, Fields.ROOT_FIELD));
         }
-        try {
-            var chunk = globals.load(script);
-            chunk.call();
-//            if (!returnValue.isnil())
-//                LOGGER.info("[Script Result] " + returnValue.tojstring());
-        } catch (LuaError ex) {
-            LOGGER.warning("[Script Error] " + ex);
-        }
+        var chunk = globals.load(script);
+        chunk.call();
     }
 
     static class FieldWrapper extends LuaTable {
         private final TradeWrapper trade;
-        private final ComplexField<TradeWrapper, ?> field;
-        FieldWrapper(TradeWrapper trade, ComplexField<TradeWrapper, ?> field) {
+        private final ContainerField<TradeWrapper, ?> field;
+        FieldWrapper(TradeWrapper trade, ContainerField<TradeWrapper, ?> field) {
             this.trade = trade;
             this.field = field;
         }
@@ -107,6 +102,8 @@ public class ScriptUtils {
                     return LuaValue.valueOf(num);
                 } else if (value instanceof Boolean bool) {
                     return LuaValue.valueOf(bool);
+                } else if (value == null) {
+                    return LuaValue.NIL;
                 } else {
                     return LuaValue.valueOf(value.toString());
                 }
@@ -119,7 +116,7 @@ public class ScriptUtils {
             String fieldName = key.checkjstring().replace('_', '-');
             var child = (Field) field.getFieldWrapped(fieldName);
             if (child != null) {
-                Class<?> clazz = child.clazz;
+                Class<?> clazz = child.getFieldClass();
                 if (clazz == String.class) {
                     child.set(trade, value.checkjstring());
                 } else if (clazz == Integer.class) {
@@ -168,7 +165,7 @@ public class ScriptUtils {
 
         @Override
         public LuaValue tostring() {
-            return LuaValue.valueOf("Field{" + field.toString() + "}");
+            return LuaValue.valueOf("LuaWrapper{" + field.toString() + "}");
         }
     }
 }

@@ -7,36 +7,30 @@ bookshelves-exploit: # Name of the recipe
   desc: Ensure that book trades from librarians require at least 3 books (new price = book price * 3)
   enabled: true
   when: # The predicate
-    villager: profession = LIBRARIAN
-    ingredient-0:
-      matches:
-        - type = book
+    villager.profession: LIBRARIAN
+    ingredient-0.type: book
   do: # Action to perform
     set:
-      ingredient-0: amount >= 3 # require min amount to be 3
+      ingredient-0.amount: ">= 3" # require min amount to be 3
       apply-discounts: false
 
 stick-trade:
   desc: Nerf the stick trades from fletcher
   enabled: true
   when:
-    villager: profession = fletcher
-    ingredient-0:
-      matches:
-        - type = stick
+    villager.profession: fletcher
+    ingredient-0.type: stick
   do:
     set:
-      ingredient-0: amount >= 128 # automatically splits the stack for you
+      ingredient-0.amount: ">= 128" # automatically splits the stack for you
       max-uses: 2
 
 diamond-item-trades:
   desc: Nerf diamond armor and tool trades
   enabled: true
   when:
-    villager: profession matches ^armorer|toolsmith$
-    result:
-      matches:
-        - type matches ^diamond_.+$ # Regex
+    villager.profession: "matches ^armorer|toolsmith$"
+    result.type: "matches ^diamond_.+$" # Regex
   do:
     set:
       apply-discounts: false
@@ -46,22 +40,17 @@ diamond-item-trades:
 #  desc: Removes stone trades from masons
 #  enabled: true
 #  when:
-#    villager: profession = mason
-#    ingredient-0:
-#      matches:
-#        - type = stone
+#    villager.profession: mason
+#    ingredient-0.type: stone
 #  do:
 #    remove: true
 #balance-clay:
 #  desc: Ensure that clay trades from masons require at least 32 clay balls
-#   enabled: true
+#  enabled: true
 #  when:
-#    villager: profession = MASON
-#    ingredient-0:
-#      matches:
-#        - type = clay_ball
+#    villager.profession: MASON
+#    ingredient-0.type: clay_ball
 #  do:
 #    set:
-#      ingredient-0:
-#        amount: '>= 32'
+#      ingredient-0.amount: '>= 32'
 #      apply-discounts: false

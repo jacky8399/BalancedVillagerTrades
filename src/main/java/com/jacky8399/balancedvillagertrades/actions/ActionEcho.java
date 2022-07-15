@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import com.jacky8399.balancedvillagertrades.utils.fields.FieldAccessor;
-import com.jacky8399.balancedvillagertrades.utils.fields.Fields;
+import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
+import com.jacky8399.balancedvillagertrades.fields.Fields;
 
 import java.util.Collection;
 import java.util.List;
@@ -14,8 +14,8 @@ import java.util.Objects;
 
 public class ActionEcho extends Action {
     public final String recipeName;
-    public final Map<String, FieldAccessor<TradeWrapper, ?, ?>> fields;
-    public ActionEcho(String name, Map<String, FieldAccessor<TradeWrapper, ?, ?>> fields) {
+    public final Map<String, FieldProxy<TradeWrapper, ?, ?>> fields;
+    public ActionEcho(String name, Map<String, FieldProxy<TradeWrapper, ?, ?>> fields) {
         this.recipeName = name;
         this.fields = ImmutableMap.copyOf(fields);
     }
