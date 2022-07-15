@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades;
 
+import org.apache.commons.io.IOUtils;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.yaml.snakeyaml.Yaml;
 
@@ -31,7 +32,7 @@ public class Config {
             plugin.saveResource("recipes.yml", false); // save default recipes.yml
         try (FileInputStream stream = new FileInputStream(recipesFile);
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-            Map<String, Object> map = (new Yaml()).load(reader);
+            Map<String, Object> map = (new Yaml()).load(IOUtils.toString(reader).replace("\t", "   "));
             if (map == null) {
                 logger.info("Loaded 0 recipes");
                 return;
