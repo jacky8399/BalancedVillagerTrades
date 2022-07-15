@@ -24,7 +24,7 @@ public class Events implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onNewTrade(VillagerAcquireTradeEvent e) {
         if (e.getEntity() instanceof Villager villager) {
-            TradeWrapper trade = new TradeWrapper(villager, e.getRecipe(), villager.getRecipes().size());
+            TradeWrapper trade = new TradeWrapper(villager, e.getRecipe(), villager.getRecipes().size(), true);
             for (Recipe recipe : Recipe.RECIPES.values()) {
                 if (recipe.ignoreRemoved && trade.isRemove())
                     continue;
@@ -45,7 +45,7 @@ public class Events implements Listener {
             List<MerchantRecipe> newRecipes = new ArrayList<>(villager.getRecipes());
             for (ListIterator<MerchantRecipe> iterator = newRecipes.listIterator(); iterator.hasNext();) {
                 int index = iterator.nextIndex();
-                TradeWrapper trade = new TradeWrapper(villager, iterator.next(), index);
+                TradeWrapper trade = new TradeWrapper(villager, iterator.next(), index, false);
                 for (Recipe recipe : Recipe.RECIPES.values()) {
                     if (recipe.ignoreRemoved && trade.isRemove())
                         continue;
