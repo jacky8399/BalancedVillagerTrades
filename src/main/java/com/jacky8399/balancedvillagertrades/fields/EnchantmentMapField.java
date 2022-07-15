@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
+import com.jacky8399.balancedvillagertrades.utils.EnchantmentPair;
 import com.jacky8399.balancedvillagertrades.utils.Pair;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -27,15 +28,38 @@ public class EnchantmentMapField extends MapField<ItemStack, Enchantment, Intege
 
     @Override
     SimpleField<Map<Enchantment, Integer>, ?> getKeyByIndexField(int index) {
-        return new SimpleField<>(String.class,
-                map -> getStringFromKey(getPairByIndex(map, index).getKey()),
+        return new EnchantmentField<Map<Enchantment, Integer>>(
+                map -> EnchantmentPair.fromPair(getPairByIndex(map, index)),
                 (map, newValue) -> {
                     Pair<Enchantment, Integer> pair = getPairByIndex(map, index);
 
                     map.remove(pair.getKey());
 
-                    map.put(Enchantment.getByKey(NamespacedKey.fromString(newValue)), pair.getValue());
+                    map.put(newValue.getKey(), newValue.getValue());
                 }
         );
+    }
+
+    @Override
+    SimpleField<Map<Enchantment, Integer>, ?> getValueByStringField(String keyString) {
+        return new EnchantmentField<Map<Enchantment, Integer>>(
+                map -> {
+                    if(keyString == null || keyString.isEmpty())
+                        return null;
+
+                    Enchantment key = getKeyByString(keyString);
+                    Integer value = map.get(key);
+
+                    return new EnchantmentPair(key, value, map);
+                },
+                (map, newValue) -> {
+                    if(keyString != null && !keyString.isEmpty()) {
+                        Enchantment key = getKeyByString(keyString);
+
+                        map.remove(key);
+
+                        map.put(newValue.getKey(), newValue.getValue());
+                    }
+                });
     }
 }

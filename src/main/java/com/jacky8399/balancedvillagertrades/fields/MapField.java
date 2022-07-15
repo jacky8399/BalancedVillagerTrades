@@ -44,10 +44,18 @@ public abstract class MapField<T, K, V> implements ContainerField<T, Map<K, V>> 
                 , (map, newValue) -> {
         });
     }
-    SimpleField<Map<K,V>,V> getValueField(K key){
+    SimpleField<Map<K,V>,?> getValueByStringField(String keyString){
         return new SimpleField<>(valueType,
-                map -> map.get(key),
-                (map, newValue) -> map.put(key, newValue));
+                map -> {
+                    if(keyString == null || keyString.isEmpty())
+                        return null;
+
+                    return map.get(getKeyByString(keyString));
+                },
+                (map, newValue) -> {
+            if(keyString != null && !keyString.isEmpty())
+                map.put(getKeyByString(keyString), newValue);
+        });
     }
 
     Pair<K,V> getPairByIndex(Map<K,V> map, int index){
@@ -74,8 +82,7 @@ public abstract class MapField<T, K, V> implements ContainerField<T, Map<K, V>> 
             }
         } catch (NumberFormatException ignored) {}
 
-        K key = getKeyByString(fieldName);
-        return key != null ? getValueField(key) : null;
+        return getValueByStringField(fieldName);
     }
 
     @Override

@@ -17,6 +17,21 @@ public class Pair<K,V> {
         return key;
     }
 
+    public void putKey(K key){
+        map.remove(this.key);
+        map.put(key, this.value);
+        this.key = key;
+    }
+
+    public void putValue(V value){
+        map.put(this.key, value);
+        this.value = value;
+    }
+
+    public Map<K, V> getMap() {
+        return map;
+    }
+
     public V getValue() {
         return value;
     }
