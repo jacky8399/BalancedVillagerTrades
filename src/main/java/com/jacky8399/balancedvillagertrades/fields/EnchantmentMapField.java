@@ -45,7 +45,7 @@ public class EnchantmentMapField extends MapField<ItemStack, Enchantment, Intege
         return new EnchantmentField<Map<Enchantment, Integer>>(
                 map -> {
                     if(keyString == null || keyString.isEmpty())
-                        return null;
+                        return new EnchantmentPair(null, 0, map);
 
                     Enchantment key = getKeyByString(keyString);
                     Integer value = map.get(key);
@@ -58,7 +58,7 @@ public class EnchantmentMapField extends MapField<ItemStack, Enchantment, Intege
 
                         map.remove(key);
 
-                        map.put(newValue.getKey(), newValue.getValue());
+                        map.put(key, newValue.getValue());
                     }
                 });
     }

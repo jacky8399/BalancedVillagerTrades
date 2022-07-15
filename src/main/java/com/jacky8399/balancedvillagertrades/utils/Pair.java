@@ -18,13 +18,15 @@ public class Pair<K,V> {
     }
 
     public void putKey(K key){
-        map.remove(this.key);
+        if(this.key != null)
+            map.remove(this.key);
         map.put(key, this.value);
         this.key = key;
     }
 
     public void putValue(V value){
-        map.put(this.key, value);
+        if(this.key != null)
+            map.put(this.key, value);
         this.value = value;
     }
 

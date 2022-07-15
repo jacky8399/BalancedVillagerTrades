@@ -60,7 +60,7 @@ public abstract class MapField<T, K, V> implements ContainerField<T, Map<K, V>> 
 
     Pair<K,V> getPairByIndex(Map<K,V> map, int index){
         if (map.size() <= index)
-            return null;
+            return new Pair<>(null, null, map);
         var iterator = map.entrySet().iterator();
         for (int i = 0; i < index; i++) {
             iterator.next();
