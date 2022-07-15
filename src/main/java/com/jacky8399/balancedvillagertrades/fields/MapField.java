@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
+import com.jacky8399.balancedvillagertrades.utils.Pair;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,53 +18,71 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
+public abstract class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
     private final Function<T, Map<K, V>> getter;
     private final BiConsumer<T, Map<K, V>> setter;
-    private final Function<String, K> keyTranslator;
     private final Class<V> valueType;
-    private final Function<K, String> keyGetter;
-    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter,
-                    Function<String, @Nullable K> keyTranslator, Class<V> valueType) {
-        this(getter, setter, keyTranslator, null, valueType);
-    }
+    private final Class<K> keyType;
 
-    public MapField(Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter,
-                    Function<String, @Nullable K> keyTranslator, Function<K, String> keyGetter, Class<V> valueType) {
+    public MapField(Class<K> keyType, Class<V> valueType, Function<T, Map<K, V>> getter, BiConsumer<T, Map<K, V>> setter) {
         this.getter = getter;
         this.setter = setter;
-        this.keyTranslator = keyTranslator;
+        this.keyType = keyType;
         this.valueType = valueType;
-        this.keyGetter = keyGetter;
     }
 
-    @Nullable
-    public K translateKey(String key) {
-        return keyTranslator.apply(key);
+    public abstract K getKeyByString(String stringKey);
+    abstract String getStringFromKey(K key);
+
+    SimpleField<Map<K, V>, Integer> getSizeField(){
+        return Field.readOnlyField(Integer.class, Map::size);
     }
 
-    private static final Field<Map<?, ?>, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, Map::size);
+    SimpleField<Map<K,V>,?> getKeyByIndexField(int index){
+        return new SimpleField<>(keyType,
+                map -> getPairByIndex(map, index).getKey()
+                , (map, newValue) -> {
+        });
+    }
+    SimpleField<Map<K,V>,?> getValueByStringField(String keyString){
+        return new SimpleField<>(valueType,
+                map -> {
+                    if(keyString == null || keyString.isEmpty())
+                        return null;
+
+                    return map.get(getKeyByString(keyString));
+                },
+                (map, newValue) -> {
+            if(keyString != null && !keyString.isEmpty())
+                map.put(getKeyByString(keyString), newValue);
+        });
+    }
+
+    Pair<K,V> getPairByIndex(Map<K,V> map, int index){
+        if (map.size() <= index)
+            return new Pair<>(null, null, map);
+        var iterator = map.entrySet().iterator();
+        for (int i = 0; i < index; i++) {
+            iterator.next();
+        }
+        K key = iterator.next().getKey();
+
+        return new Pair<>(key, map.get(key), map);
+    }
+
     @Override
     public @Nullable SimpleField<Map<K, V>, ?> getField(String fieldName) {
         if ("size".equals(fieldName))
-            return (SimpleField) SIZE_FIELD;
+            return getSizeField();
         try {
             int index = Integer.parseInt(fieldName);
             // allow numeric indices to get the key
-            if (keyGetter != null && index >= 0) {
-                return new SimpleField<>(String.class, map -> {
-                    if (map.size() <= index)
-                        return null;
-                    var iterator = map.entrySet().iterator();
-                    for (int i = 0; i < index; i++) {
-                        iterator.next();
-                    }
-                    return keyGetter.apply(iterator.next().getKey());
-                }, (map, newValue) -> {});
+            if (index >= 0) {
+                return getKeyByIndexField(index);
             }
         } catch (NumberFormatException ignored) {}
-        K key = translateKey(fieldName);
-        return key != null ? new SimpleField<>(valueType, map -> map.get(key), (map, newValue) -> map.put(key, newValue)) : null;
+
+        return getValueByStringField(fieldName);
     }
 
     @Override
@@ -71,7 +90,7 @@ public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
         if (owner == null)
             return Collections.singletonList("size");
         return get(owner).keySet().stream()
-                .map(keyGetter != null ? keyGetter : Objects::toString)
+                .map(this::getStringFromKey)
                 .collect(Collectors.toList());
     }
     @Override
@@ -103,7 +122,7 @@ public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
             throw new IllegalArgumentException("Can only check for keys in a map");
         }
         String key = matcher.group(1);
-        K translatedKey = translateKey(key);
+        K translatedKey = getKeyByString(key);
         if (translatedKey == null)
             throw new IllegalArgumentException("Invalid key " + key);
         return (ignored, map) -> map.containsKey(translatedKey);

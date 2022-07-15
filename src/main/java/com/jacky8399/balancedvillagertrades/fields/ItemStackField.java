@@ -22,7 +22,7 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
     // I'm lazy
     private static final Field<ItemStack, ItemMeta> META_FIELD = FieldProxy.emptyAccessor(new SimpleField<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta));
 
-    private static final MapField<ItemStack, Enchantment, Integer> ENCHANTMENT_FIELD = new MapField<>(
+    private static final MapField<ItemStack, Enchantment, Integer> ENCHANTMENT_FIELD = new EnchantmentMapField(
             is -> {
                 ItemMeta meta = is.getItemMeta();
                 return new LinkedHashMap<>(
@@ -49,9 +49,7 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
                         meta.addEnchant(ench, lvl, true);
                 });
                 is.setItemMeta(meta);
-            },
-            string -> Enchantment.getByKey(NamespacedKey.fromString(string)),
-            enchantment -> enchantment.getKey().toString(), Integer.class
+            }
     );
 
     public static final ImmutableMap<String, Field<ItemStack, ?>> ITEM_STACK_FIELDS = ImmutableMap.<String, Field<ItemStack, ?>>builder()
