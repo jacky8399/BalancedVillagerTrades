@@ -35,6 +35,20 @@ diamond-item-trades:
     set:
       apply-discounts: false
 
+replace-mending-with-unbreaking:
+  desc: Replace mending enchantment with unbreaking 3
+  enabled: true
+  when:
+    villager.profession: LIBRARIAN
+    result:
+      enchantments.mending.level: "> 0" #Check if it has mending enchantment
+  do:
+    set:
+      result:
+        enchantments.mending:
+          level: 3 #We have to replace the level before replacing the id, or syntax might duplicate the enchantment
+          id: "minecraft:unbreaking"
+
 
 #remove-stone-trade:
 #  desc: Removes stone trades from masons
