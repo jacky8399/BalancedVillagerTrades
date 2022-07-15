@@ -23,8 +23,8 @@ public class Events implements Listener {
     // patch trades
     @EventHandler(ignoreCancelled = true)
     public void onNewTrade(VillagerAcquireTradeEvent e) {
-        if (e.getEntity() instanceof Villager) {
-            TradeWrapper trade = new TradeWrapper((Villager) e.getEntity(), e.getRecipe());
+        if (e.getEntity() instanceof Villager villager) {
+            TradeWrapper trade = new TradeWrapper(villager, e.getRecipe(), villager.getRecipes().size());
             for (Recipe recipe : Recipe.RECIPES.values()) {
                 if (recipe.ignoreRemoved && trade.isRemove())
                     continue;
@@ -41,11 +41,11 @@ public class Events implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEntityEvent e) {
-        if (e.getRightClicked() instanceof Villager) {
-            Villager villager = (Villager) e.getRightClicked();
+        if (e.getRightClicked() instanceof Villager villager) {
             List<MerchantRecipe> newRecipes = new ArrayList<>(villager.getRecipes());
             for (ListIterator<MerchantRecipe> iterator = newRecipes.listIterator(); iterator.hasNext();) {
-                TradeWrapper trade = new TradeWrapper(villager, iterator.next());
+                int index = iterator.nextIndex();
+                TradeWrapper trade = new TradeWrapper(villager, iterator.next(), index);
                 for (Recipe recipe : Recipe.RECIPES.values()) {
                     if (recipe.ignoreRemoved && trade.isRemove())
                         continue;
