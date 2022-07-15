@@ -30,6 +30,8 @@ public class Fields {
             .put("villager-experience", new Field<>(Integer.class,
                     trade -> trade.getRecipe().getVillagerExperience(),
                     (trade, villagerXP) -> trade.getRecipe().setVillagerExperience(villagerXP)))
+            .put("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex))
+            .put("new-recipe", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))
             .put("ingredient-0", new ItemStackField<>(
                     trade -> trade.getRecipe().getIngredients().get(0),
                     (trade, stack) -> setIngredient(0, trade, stack)))

@@ -102,13 +102,13 @@ public class CommandBvt implements TabExecutor {
                 if (args.length >= 4) {
                     try {
                         int recipeId = Integer.parseInt(args[3]);
-                        wrapper = new TradeWrapper(villager, villager.getRecipe(recipeId));
+                        wrapper = new TradeWrapper(villager, villager.getRecipe(recipeId), recipeId, false);
                     } catch (NumberFormatException | IndexOutOfBoundsException e) {
                         sender.sendMessage(ChatColor.RED + "Invalid recipe index " + args[3]);
                         return true;
                     }
                 } else {
-                    wrapper = new TradeWrapper(villager, null);
+                    wrapper = new TradeWrapper(villager, null, -1, false);
                 }
                 FieldAccessor<TradeWrapper, ?, ?> field = Fields.findField(null, args[2], true);
                 // debug accessor
@@ -163,7 +163,7 @@ public class CommandBvt implements TabExecutor {
                     try {
                         List<Entity> entities = Bukkit.selectEntities(sender, args[1]);
                         if (entities.size() == 1 && entities.get(0) instanceof Villager) {
-                            return new ArrayList<>(Fields.listFields(null, null, new TradeWrapper((Villager) entities.get(0), null)).keySet());
+                            return new ArrayList<>(Fields.listFields(null, null, new TradeWrapper((Villager) entities.get(0), null, -1, false)).keySet());
                         }
                     } catch (Exception ignored) {}
                     return new ArrayList<>(Fields.listFields(null, null, null).keySet());
