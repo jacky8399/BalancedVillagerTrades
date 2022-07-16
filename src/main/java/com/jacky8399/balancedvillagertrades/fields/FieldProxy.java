@@ -4,7 +4,7 @@ import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
@@ -89,9 +89,25 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
         return child.parseTransformer(input);
     }
 
+    private String formatField() {
+        return fieldName + " : " + child.getFieldClass().getSimpleName();
+    }
+
     @Override
     public String toString() {
-        return "FieldProxy{parent=" + parent + ", child=" + child + ", fieldName=" + fieldName + "}";
+        // print the entire access chain along with their types
+        Deque<String> parents = new ArrayDeque<>();
+        parents.addFirst(formatField());
+        Field<?, ?> parent = this.parent;
+        while (parent instanceof FieldProxy parentProxy) {
+            parents.addFirst(parentProxy.formatField());
+            parent = parentProxy.parent;
+        }
+        if (parent != null)
+            parents.addFirst(parent.toString());
+
+        String chain = String.join(" -> ", parents);
+        return "FieldProxy{" + chain + "}";
     }
 
 

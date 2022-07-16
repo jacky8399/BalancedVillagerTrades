@@ -44,9 +44,9 @@ public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
 
     private static final Field<Map<?, ?>, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, Map::size);
     @Override
-    public @Nullable SimpleField<Map<K, V>, ?> getField(String fieldName) {
+    public @Nullable Field<Map<K, V>, ?> getField(String fieldName) {
         if ("size".equals(fieldName))
-            return (SimpleField) SIZE_FIELD;
+            return (Field) SIZE_FIELD;
         try {
             int index = Integer.parseInt(fieldName);
             // allow numeric indices to get the key

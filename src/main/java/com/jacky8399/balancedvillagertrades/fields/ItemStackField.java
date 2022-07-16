@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades.fields;
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
@@ -97,7 +98,12 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
     @Override
     public @NotNull BiPredicate<TradeWrapper, ItemStack> parsePredicate(@NotNull String input) throws IllegalArgumentException {
         // legacy syntax handled by FieldPredicate, since it used a map
-        return super.parsePredicate(input);
+        try {
+            ItemStack parsed = Bukkit.getItemFactory().createItemStack(input);
+            return (ignored, old) -> parsed.isSimilar(old);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid item stack", ex);
+        }
     }
 
     @Override
@@ -116,6 +122,11 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
                 return stack;
             };
         }
-        throw new UnsupportedOperationException();
+        try {
+            ItemStack parsed = Bukkit.getItemFactory().createItemStack(input);
+            return (ignored, old) -> parsed.clone();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid item stack", ex);
+        }
     }
 }

@@ -106,7 +106,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
             }
             case "matches" -> {
                 Pattern pattern = Pattern.compile(operand, caseInsensitive ? Pattern.CASE_INSENSITIVE : 0);
-                return (ignored, obj) -> obj != null && pattern.matcher(obj).matches();
+                return (ignored, obj) -> obj != null && pattern.matcher(obj).find();
             }
             default -> throw new IllegalArgumentException(operation);
         }

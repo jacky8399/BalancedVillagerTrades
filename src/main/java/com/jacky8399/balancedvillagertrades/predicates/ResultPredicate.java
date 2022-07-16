@@ -25,7 +25,7 @@ public class ResultPredicate extends ItemPredicate {
         if (!(matchers instanceof List<?>)) {
             throw new IllegalArgumentException("Expected list at matches");
         }
-        return new ResultPredicate(new ItemStack(Material.AIR), Collections.emptySet(), // TODO complex matchers
+        return new ResultPredicate(new ItemStack(Material.AIR), Collections.emptySet(),
                 ItemPredicate.getFromInput((List<String>) matchers));
     }
 

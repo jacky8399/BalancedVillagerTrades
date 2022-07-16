@@ -29,7 +29,7 @@ public class IngredientPredicate extends ItemPredicate {
         if (!(matchers instanceof List<?>)) {
             throw new IllegalArgumentException("Expected list at matches");
         }
-        return new IngredientPredicate(new ItemStack(Material.AIR), Collections.emptySet(), // TODO complex matchers
+        return new IngredientPredicate(new ItemStack(Material.AIR), Collections.emptySet(),
                 ItemPredicate.getFromInput((List<String>) matchers), ingredient);
     }
 

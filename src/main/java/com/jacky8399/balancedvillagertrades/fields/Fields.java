@@ -76,13 +76,14 @@ public class Fields {
         FieldProxy<TradeWrapper, ?, ?> field = FieldProxy.emptyAccessor(root);
         StringBuilder pathName = new StringBuilder("root");
         for (String child : paths) {
+            FieldProxy<TradeWrapper, ?, ?> parent = field;
             if (field.isComplex()) {
                 field = field.getFieldWrapped(child);
             } else {
                 throw new IllegalArgumentException("Can't access " + path + " because " + pathName + " does not have fields");
             }
             if (field == null) {
-                throw new IllegalArgumentException(pathName + " does not have field " + child);
+                throw new IllegalArgumentException(pathName + "(" + parent + ") does not have field " + child);
             }
             pathName.append('.').append(child);
         }
