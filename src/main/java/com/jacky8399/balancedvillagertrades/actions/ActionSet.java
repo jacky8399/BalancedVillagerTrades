@@ -1,19 +1,16 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
-import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.fields.ContainerField;
 import com.jacky8399.balancedvillagertrades.fields.Field;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
-import org.bukkit.inventory.ItemStack;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntUnaryOperator;
-import java.util.function.UnaryOperator;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,10 +20,10 @@ public class ActionSet extends Action {
      * A description of the operation
      */
     public final String desc;
-    public final Field<TradeWrapper, ?> field;
-    public final UnaryOperator<?> transformer;
+    public final FieldProxy<TradeWrapper, ?, ?> field;
+    public final BiFunction<TradeWrapper, ?, ?> transformer;
 
-    public ActionSet(String desc, Field<TradeWrapper, ?> field, UnaryOperator<?> transformer) {
+    public ActionSet(String desc, FieldProxy<TradeWrapper, ?, ?> field, BiFunction<TradeWrapper, ?, ?> transformer) {
         this.desc = desc;
         this.field = field;
         this.transformer = transformer;
@@ -34,8 +31,21 @@ public class ActionSet extends Action {
 
     @Override
     public void accept(TradeWrapper tradeWrapper) {
-        Object newValue = ((UnaryOperator) transformer).apply(field.get(tradeWrapper));
-        ((Field) field).set(tradeWrapper, newValue);
+        Object value = field.get(tradeWrapper);
+        Object newValue;
+        try {
+            newValue =((BiFunction) transformer).apply(tradeWrapper, value);
+        } catch (Exception ex) {
+            BalancedVillagerTrades.LOGGER.severe("Failed to transform value " + value + " for field " + field.fieldName);
+            ex.printStackTrace();
+            return;
+        }
+        try {
+            ((Field) field).set(tradeWrapper, newValue);
+        } catch (Exception ex) {
+            BalancedVillagerTrades.LOGGER.severe("Failed to set field " + field.fieldName + " to " + newValue);
+            ex.printStackTrace();
+        }
     }
 
     @Override
@@ -67,8 +77,8 @@ public class ActionSet extends Action {
                         if (field.isReadOnly()) {
                             BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " is read-only! Assigning new values to it will have no effect.");
                         }
-                        UnaryOperator<?> operator = getTransformer(field.getFieldClass(), value != null ? value.toString() : null);
-                        return Stream.of(new ActionSet(fieldName + " to " + value, field, operator));
+                        BiFunction<TradeWrapper, ?, ?> transformer = getTransformer(field, value != null ? value.toString() : null);
+                        return Stream.of(new ActionSet(fieldName + " to " + value, field, transformer));
                     }
                 });
     }
@@ -77,46 +87,14 @@ public class ActionSet extends Action {
         return parse(null, null, map).collect(Collectors.toList());
     }
 
-    public static UnaryOperator<?> getTransformer(Class<?> clazz, @Nullable String input) {
-        if (input == null) {
-            if (clazz == Boolean.class) {
-                return oldVal -> false;
-            } else if (clazz == Integer.class) {
-                return oldVal -> 0;
-            } else return oldVal -> null;
+    public static BiFunction<TradeWrapper, ?, ?> getTransformer(FieldProxy<TradeWrapper, ?, ?> field, @Nullable String input) {
+        String trimmed = input != null ? input.trim() : "null";
+        try {
+            return field.parseTransformer(trimmed);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Don't know how to transform " + field.fieldName
+                    + "(type=" + field.getFieldClass().getSimpleName() + ") for input " + trimmed);
         }
-        String trimmed = input.trim();
-        if (clazz == Boolean.class) {
-            boolean bool = Boolean.parseBoolean(trimmed);
-            return oldVal -> bool;
-        } else if (clazz == String.class) {
-            return oldVal -> trimmed;
-        } else if (clazz == Integer.class) {
-            IntUnaryOperator func = OperatorUtils.getFunctionFromInput(trimmed);
-            if (func == null) {
-                try {
-                    int num = Integer.parseInt(trimmed);
-                    return oldInt -> num;
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid comparison expression or integer " + trimmed);
-                }
-            }
-            return (UnaryOperator<Integer>) func::applyAsInt;
-        } else if (clazz == ItemStack.class) {
-            if (trimmed.startsWith("amount")) {
-                String operatorStr = trimmed.substring(6).trim();
-                IntUnaryOperator intOperator = OperatorUtils.getFunctionFromInput(operatorStr);
-                if (intOperator == null) {
-                    throw new IllegalArgumentException("Invalid comparison expression " + trimmed);
-                }
-                return oldIs -> {
-                    ItemStack stack = ((ItemStack) oldIs).clone();
-                    stack.setAmount(intOperator.applyAsInt(stack.getAmount()));
-                    return stack;
-                };
-            }
-        }
-        throw new IllegalArgumentException("Don't know how to handle field of type " + clazz.getSimpleName());
     }
 
 }

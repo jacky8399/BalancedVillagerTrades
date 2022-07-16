@@ -1,18 +1,20 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
 import com.google.common.collect.ImmutableMap;
-import org.bukkit.Material;
+import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.function.*;
 
 public class ItemStackField<T> extends SimpleField<T, ItemStack> implements ContainerField<T, ItemStack> {
     public ItemStackField(Function<T, ItemStack> getter, BiConsumer<T, ItemStack> setter) {
@@ -58,9 +60,12 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
             .put("amount", new SimpleField<>(Integer.class,
                     ItemStack::getAmount,
                     ItemStack::setAmount))
-            .put("type", new SimpleField<>(String.class,
-                    is -> is.getType().getKey().toString(),
-                    (is, newType) -> is.setType(Objects.requireNonNull(Material.matchMaterial(newType)))))
+            .put("type", new NamespacedKeyField<>(
+                    is -> is.getType().getKey(),
+                    (is, key) -> {
+                        Objects.requireNonNull(key, "resource location must not be null");
+                        is.setType(Objects.requireNonNull(Registry.MATERIAL.get(key), "Invalid item " + key));
+                    }))
             .put("enchantments", ENCHANTMENT_FIELD)
             .put("damage", META_FIELD.chain(new SimpleField<>(Integer.class,
                     meta -> meta instanceof Damageable damageable ? damageable.getDamage() : 0,
@@ -87,5 +92,30 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
     @Override
     public String toString() {
         return "ItemStackField";
+    }
+
+    @Override
+    public @NotNull BiPredicate<TradeWrapper, ItemStack> parsePredicate(@NotNull String input) throws IllegalArgumentException {
+        // legacy syntax handled by FieldPredicate, since it used a map
+        return super.parsePredicate(input);
+    }
+
+    @Override
+    public @NotNull BiFunction<TradeWrapper, ItemStack, ItemStack> parseTransformer(@Nullable String input) throws IllegalArgumentException {
+        if (input == null)
+            return (ignored, old) -> null;
+        if (input.startsWith("amount")) {
+            String operatorStr = input.substring(6).trim();
+            IntUnaryOperator intOperator = OperatorUtils.getFunctionFromInput(operatorStr);
+            if (intOperator == null) {
+                throw new IllegalArgumentException("Invalid comparison expression " + operatorStr);
+            }
+            return (ignored, oldIs) -> {
+                ItemStack stack = oldIs.clone();
+                stack.setAmount(intOperator.applyAsInt(stack.getAmount()));
+                return stack;
+            };
+        }
+        throw new UnsupportedOperationException();
     }
 }

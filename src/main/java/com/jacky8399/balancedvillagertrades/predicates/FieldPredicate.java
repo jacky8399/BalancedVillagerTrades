@@ -86,12 +86,12 @@ public class FieldPredicate extends TradePredicate {
     private static boolean warnOldItemSyntax = true;
 
     public static BiPredicate<TradeWrapper, ?> getPredicate(FieldProxy<TradeWrapper, ?, ?> field, String input) {
-        Class<?> clazz = field.getFieldClass();
         String trimmed = input.trim();
         try {
             return field.parsePredicate(trimmed);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Don't know how to test against " + field.fieldName + " (type=" + clazz.getSimpleName() + ")", ex);
+            throw new IllegalArgumentException("Don't know how to test against " + field.fieldName
+                    + " (type=" + field.getFieldClass().getSimpleName() + ") for input " + trimmed, ex);
         }
     }
 

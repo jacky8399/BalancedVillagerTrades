@@ -41,10 +41,10 @@ public class Fields {
                     trade -> trade.getRecipe().getResult(),
                     (trade, stack) -> {
                         MerchantRecipe oldRecipe = trade.getRecipe();
-                        MerchantRecipe newRecipe = new MerchantRecipe(stack,
+                        MerchantRecipe newRecipe = new MerchantRecipe(Objects.requireNonNull(stack),
                                 oldRecipe.getUses(), oldRecipe.getMaxUses(),
                                 oldRecipe.hasExperienceReward(), oldRecipe.getVillagerExperience(),
-                                oldRecipe.getPriceMultiplier());
+                                oldRecipe.getPriceMultiplier(), oldRecipe.getDemand(), oldRecipe.getSpecialPrice());
                         newRecipe.setIngredients(oldRecipe.getIngredients());
                         trade.setRecipe(newRecipe);
                     })),
@@ -98,9 +98,11 @@ public class Fields {
             return FIELDS.entrySet().stream()
                     .flatMap(entry -> {
                         Field<TradeWrapper, ?> field = entry.getValue();
-                        if (field instanceof ContainerField)
+                        if (field instanceof ContainerField) {
+                            // noinspection unchecked
                             return listFields((ContainerField<TradeWrapper, ?>) field, entry.getKey(), context)
                                     .entrySet().stream();
+                        }
                         return Stream.of(Maps.immutableEntry(entry.getKey(), field));
                     })
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -122,7 +124,10 @@ public class Fields {
         return Collections.singletonMap(path, root);
     }
 
-    private static void setIngredient(int index, TradeWrapper trade, final ItemStack stack) {
+    private static void setIngredient(int index, TradeWrapper trade, @Nullable final ItemStack stack) {
+        if (stack == null) {
+            throw new NullPointerException();
+        }
         List<ItemStack> stacks = new ArrayList<>(trade.getRecipe().getIngredients());
         if (stack.getAmount() > stack.getMaxStackSize()) {
             ItemStack clone = stack.clone();

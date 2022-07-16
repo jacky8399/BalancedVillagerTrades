@@ -97,7 +97,7 @@ public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
 
     private static final Pattern MAP_PATTERN = Pattern.compile("^contains\\s*(.+)$", Pattern.CASE_INSENSITIVE);
     @Override
-    public @NotNull BiPredicate<TradeWrapper, Map<K, V>> parsePredicate(String input) throws IllegalArgumentException {
+    public @NotNull BiPredicate<TradeWrapper, Map<K, V>> parsePredicate(@NotNull String input) throws IllegalArgumentException {
         Matcher matcher = MAP_PATTERN.matcher(input);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("Can only check for keys in a map");
@@ -110,7 +110,7 @@ public class MapField<T, K, V> implements ContainerField<T, Map<K, V>> {
     }
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, Map<K, V>, Map<K, V>> parseTransformer(String input) throws IllegalArgumentException {
+    public @NotNull BiFunction<TradeWrapper, Map<K, V>, Map<K, V>> parseTransformer(@Nullable String input) throws IllegalArgumentException {
         throw new IllegalArgumentException("Cannot modify a map");
     }
 

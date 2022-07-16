@@ -80,12 +80,12 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
     }
 
     @Override
-    public @NotNull BiPredicate<TradeWrapper, TField> parsePredicate(String input) {
+    public @NotNull BiPredicate<TradeWrapper, TField> parsePredicate(@NotNull String input) {
         return child.parsePredicate(input);
     }
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(String input) {
+    public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(@Nullable String input) {
         return child.parseTransformer(input);
     }
 

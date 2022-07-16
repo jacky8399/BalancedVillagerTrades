@@ -20,12 +20,12 @@ public interface Field<TOwner, TField> {
     Class<TField> getFieldClass();
 
     @NotNull
-    default BiPredicate<TradeWrapper, TField> parsePredicate(String input) {
+    default BiPredicate<TradeWrapper, TField> parsePredicate(@NotNull String input) {
         throw new UnsupportedOperationException();
     }
 
     @NotNull
-    default BiFunction<TradeWrapper, TField, TField> parseTransformer(String input) {
+    default BiFunction<TradeWrapper, TField, TField> parseTransformer(@Nullable String input) {
         throw new UnsupportedOperationException();
     }
 

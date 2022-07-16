@@ -59,7 +59,7 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
     @Override
-    public @NotNull BiPredicate<TradeWrapper, Villager> parsePredicate(String input) throws IllegalArgumentException {
+    public @NotNull BiPredicate<TradeWrapper, Villager> parsePredicate(@NotNull String input) throws IllegalArgumentException {
         Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(input);
         if (matcher.matches()) {
             if (warnOldVillagerSyntax) {
@@ -80,7 +80,7 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
     }
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, Villager, Villager> parseTransformer(String input) throws IllegalArgumentException {
+    public @NotNull BiFunction<TradeWrapper, Villager, Villager> parseTransformer(@Nullable String input) throws IllegalArgumentException {
         return super.parseTransformer(input);
     }
 

@@ -1,6 +1,5 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
-import com.jacky8399.balancedvillagertrades.actions.ActionSet;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +16,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
     @Nullable
     public final BiConsumer<TOwner, TField> setter;
 
-    public SimpleField(Class<TField> clazz, Function<TOwner, TField> getter, @Nullable BiConsumer<TOwner, TField> setter) {
+    public SimpleField(Class<TField> clazz, Function<TOwner, TField> getter, @Nullable BiConsumer<TOwner, @Nullable TField> setter) {
         this.clazz = clazz;
         this.getter = getter;
         this.setter = setter;
@@ -46,7 +45,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public @NotNull BiPredicate<TradeWrapper, TField> parsePredicate(String input) throws IllegalArgumentException {
+    public @NotNull BiPredicate<TradeWrapper, TField> parsePredicate(@NotNull String input) throws IllegalArgumentException {
         if (clazz == Boolean.class) {
             if (!(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")))
                 throw new IllegalArgumentException("booleans can only be true or false");
@@ -70,8 +69,9 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
         throw new UnsupportedOperationException();
     }
 
-    private static final Pattern STRING_PATTERN = Pattern.compile("^(==?|contains|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
-    private static BiPredicate<TradeWrapper, String> parseStringPredicate(String input) {
+    protected static final Pattern STRING_PATTERN = Pattern.compile("^(==?|contains|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+
+    public static BiPredicate<TradeWrapper, String> parseStringPredicate(String input) {
         Matcher matcher = STRING_PATTERN.matcher(input);
         if (!matcher.matches()) {
             return (ignored, obj) -> input.equalsIgnoreCase(obj);
@@ -113,9 +113,42 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
     }
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(String input) throws IllegalArgumentException {
-        UnaryOperator<TField> transformer = (UnaryOperator<TField>) ActionSet.getTransformer(clazz, input);
-        return (wrapper, old) -> transformer.apply(old);
+    public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(@Nullable String input) throws IllegalArgumentException {
+        BiFunction<TradeWrapper, TField, ?> transformer = null;
+        // default values for null
+        if (input == null) {
+            if (clazz == Boolean.class) {
+                transformer = (ignored, old) -> false;
+            } else if (clazz == Integer.class) {
+                transformer = (ignored, old) -> 0;
+            } else {
+                transformer = (ignored, old) -> null;
+            }
+        } else {
+            if (clazz == Boolean.class) {
+                boolean bool = Boolean.parseBoolean(input);
+                transformer = (ignored, old) -> bool;
+            } else if (clazz == String.class) {
+                transformer = (ignored, old) -> input;
+            } else if (clazz == Integer.class) {
+                IntUnaryOperator func = OperatorUtils.getFunctionFromInput(input);
+                if (func == null) {
+                    try {
+                        int num = Integer.parseInt(input);
+                        transformer = (ignored, old) -> num;
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Invalid comparison expression or integer " + input);
+                    }
+                } else {
+                    transformer = (ignored, old) -> func.applyAsInt((int) old);
+                }
+            }
+        }
+
+        if (transformer == null)
+            throw new UnsupportedOperationException();
+        // noinspection unchecked
+        return (BiFunction<TradeWrapper, TField, TField>) transformer;
     }
 
     @Override
