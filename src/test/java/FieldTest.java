@@ -4,11 +4,11 @@ import com.jacky8399.balancedvillagertrades.fields.MapField;
 import com.jacky8399.balancedvillagertrades.fields.NamespacedKeyField;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,7 +40,9 @@ public class FieldTest {
     List<PredicateOutcome<?>> predicateOutcomes = List.of(
             new PredicateOutcome<>(Field.readOnlyField(Boolean.class, null), true, true, "true"),
             new PredicateOutcome<>(Field.readOnlyField(Integer.class, null), 13, true,
-                    "> 12", "= 13", "13", "!= 5", "<= 13"),
+                    "> 12", "= 13", "13", "!= 5", "<= 13", "between 5 and 13", "in 5-13", "in 5..13"),
+            new PredicateOutcome<>(Field.readOnlyField(Integer.class, null), 13, false,
+                    "< 12", "!= 13", "<> 13", "between 5 and 6", "in 0-0"),
             new PredicateOutcome<>(Field.readOnlyField(String.class, null), "minecraft:tnt", true,
                     "minecraft:tnt", "MiNeCrAfT:TnT",
                     "= minecraft:tnt", "= \"minecraft:tnt\"i",
@@ -75,9 +77,28 @@ public class FieldTest {
         }
     }
 
+    record TransformerOutcome<T>(Field<?, T> field, T input, Map<String, T> transformations) {}
+    List<TransformerOutcome<?>> transformerOutcomes = List.of(
+            new TransformerOutcome<>(Field.readOnlyField(Integer.class, null), 5, Map.of(
+                    ">= 6", 6, "= 10", 10, "11", 11,
+                    "+= 15", 20, "/= 3", 1, "%= 3", 2,
+                    "between 6 and 7", 6, "in 0..3", 3
+            ))
+    );
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
-    @Disabled
     public void testTransformer() {
-        // TODO add test cases
+        for (var outcome : transformerOutcomes) {
+            var field = outcome.field();
+            var input = outcome.input();
+            outcome.transformations().forEach((transformer, expected) -> {
+                var transformerFunc = (BiFunction) field.parseTransformer(transformer);
+                var output = transformerFunc.apply(null, input);
+                assertEquals(expected, output,
+                        () -> "Clazz: %s, transforming %s using %s"
+                                .formatted(field.getFieldClass().getSimpleName(), input.toString(), transformer));
+            });
+        }
     }
 }

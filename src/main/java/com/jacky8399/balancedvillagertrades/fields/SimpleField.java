@@ -60,7 +60,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
                     Integer number = Integer.valueOf(input);
                     return (ignored, obj) -> number.equals(obj);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid comparison expression or integer " + input);
+                    throw new IllegalArgumentException("Invalid comparison expression for integer " + input);
                 }
             }
         } else if (clazz == String.class) {
@@ -137,7 +137,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
                         int num = Integer.parseInt(input);
                         transformer = (ignored, old) -> num;
                     } catch (NumberFormatException e) {
-                        throw new IllegalArgumentException("Invalid comparison expression or integer " + input);
+                        throw new IllegalArgumentException("Invalid comparison expression for integer " + input);
                     }
                 } else {
                     transformer = (ignored, old) -> func.applyAsInt((int) old);

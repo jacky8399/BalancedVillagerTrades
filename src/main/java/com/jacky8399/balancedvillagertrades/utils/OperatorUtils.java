@@ -10,8 +10,9 @@ import java.util.regex.Pattern;
 
 public class OperatorUtils {
     public static final Pattern BASIC_COMPARISON = Pattern.compile("^(>|>=|<|<=|==?|<>|!=)\\s*(\\d+)$");
-    public static final Pattern BETWEEN = Pattern.compile("^between\\s+(\\d+)\\s+and(\\d+)$");
-    public static final Pattern IN_RANGE = Pattern.compile("^in\\s+(\\d+)(?:-|.{2,3})(\\d+)$");
+    public static final Pattern OPERATORS = Pattern.compile("^([+\\-*/%]=)\\s*(\\d+)$");
+    public static final Pattern BETWEEN = Pattern.compile("^between\\s+(\\d+)\\s+and\\s+(\\d+)$");
+    public static final Pattern IN_RANGE = Pattern.compile("^in\\s+(\\d+)(?:-|\\.{2,3})(\\d+)$");
 
     @Nullable
     public static IntPredicate fromInput(String input) throws IllegalArgumentException {
@@ -31,7 +32,7 @@ public class OperatorUtils {
     @Nullable
     public static IntUnaryOperator getFunctionFromInput(String input) throws IllegalArgumentException {
         Matcher matcher;
-        if ((matcher = BASIC_COMPARISON.matcher(input)).matches()) {
+        if ((matcher = BASIC_COMPARISON.matcher(input)).matches() || (matcher = OPERATORS.matcher(input)).matches()) {
             String operator = matcher.group(1);
             int operand = Integer.parseInt(matcher.group(2));
             return getFunctionFromOperator(operator, ()->operand);
