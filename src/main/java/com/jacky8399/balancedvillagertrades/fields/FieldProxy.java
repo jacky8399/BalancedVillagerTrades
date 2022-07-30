@@ -19,6 +19,20 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
         this.fieldName = fieldName;
     }
 
+    public boolean isComplex() {
+        return child instanceof ContainerField;
+    }
+
+    @Nullable
+    public String getSimpleName() {
+        if (fieldName == null)
+            return null;
+        int lastDot = fieldName.lastIndexOf('.');
+        if (lastDot == -1)
+            return fieldName;
+        return fieldName.substring(lastDot + 1);
+    }
+
     @Override
     public TField get(TOwner tOwner) {
         T intermediate = parent.get(tOwner);
@@ -35,10 +49,6 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
     @Override
     public <TInner> FieldProxy<TOwner, TField, TInner> andThen(Field<TField, TInner> field) {
         return new FieldProxy<>(this, field, fieldName);
-    }
-
-    public boolean isComplex() {
-        return child instanceof ContainerField;
     }
 
     @Override
@@ -90,7 +100,7 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
     }
 
     private String formatField() {
-        return fieldName + " : " + child.getFieldClass().getSimpleName();
+        return getSimpleName() + " (" + child.toString() + ")";
     }
 
     @Override

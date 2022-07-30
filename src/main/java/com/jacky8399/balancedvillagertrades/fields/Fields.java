@@ -37,17 +37,7 @@ public class Fields {
             entry("ingredient-1", new ItemStackField<>(
                     trade -> trade.getRecipe().getIngredients().get(1),
                     (trade, stack) -> setIngredient(1, trade, stack))),
-            entry("result", new ItemStackField<>(
-                    trade -> trade.getRecipe().getResult(),
-                    (trade, stack) -> {
-                        MerchantRecipe oldRecipe = trade.getRecipe();
-                        MerchantRecipe newRecipe = new MerchantRecipe(Objects.requireNonNull(stack),
-                                oldRecipe.getUses(), oldRecipe.getMaxUses(),
-                                oldRecipe.hasExperienceReward(), oldRecipe.getVillagerExperience(),
-                                oldRecipe.getPriceMultiplier(), oldRecipe.getDemand(), oldRecipe.getSpecialPrice());
-                        newRecipe.setIngredients(oldRecipe.getIngredients());
-                        trade.setRecipe(newRecipe);
-                    })),
+            entry("result", new ItemStackField<>(trade -> trade.getRecipe().getResult(), Fields::setResult)),
             entry("villager", new VillagerField()),
             entry("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex)),
             entry("is-new", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))
@@ -57,7 +47,7 @@ public class Fields {
             new SimpleContainerField<>(TradeWrapper.class, Function.identity(), null, FIELDS) {
                 @Override
                 public String toString() {
-                    return "RootField";
+                    return "trade";
                 }
             };
 
@@ -147,5 +137,15 @@ public class Fields {
             stacks.set(index, stack);
         }
         trade.getRecipe().setIngredients(stacks);
+    }
+
+    private static void setResult(TradeWrapper trade, ItemStack stack) {
+        MerchantRecipe oldRecipe = trade.getRecipe();
+        MerchantRecipe newRecipe = new MerchantRecipe(Objects.requireNonNull(stack),
+                oldRecipe.getUses(), oldRecipe.getMaxUses(),
+                oldRecipe.hasExperienceReward(), oldRecipe.getVillagerExperience(),
+                oldRecipe.getPriceMultiplier(), oldRecipe.getDemand(), oldRecipe.getSpecialPrice());
+        newRecipe.setIngredients(oldRecipe.getIngredients());
+        trade.setRecipe(newRecipe);
     }
 }

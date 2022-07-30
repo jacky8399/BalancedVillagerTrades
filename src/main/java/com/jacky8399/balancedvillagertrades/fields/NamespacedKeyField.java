@@ -36,7 +36,7 @@ public class NamespacedKeyField<TOwner> extends SimpleField<TOwner, NamespacedKe
             return (ignored, value) -> value.equals(operand);
         }
         // support string predicates
-        BiPredicate<TradeWrapper, String> stringPredicate = parseStringPredicate(input);
+        BiPredicate<TradeWrapper, String> stringPredicate = parsePrimitivePredicate(String.class, input);
         return (ignored, value) -> stringPredicate.test(ignored, value.toString());
     }
 

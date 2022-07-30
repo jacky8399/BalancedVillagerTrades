@@ -43,9 +43,13 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
         return clazz;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public @NotNull BiPredicate<TradeWrapper, TField> parsePredicate(@NotNull String input) throws IllegalArgumentException {
+    public @NotNull BiPredicate<TradeWrapper, TField> parsePredicate(@NotNull String input) {
+        return parsePrimitivePredicate(clazz, input);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> @NotNull BiPredicate<TradeWrapper, T> parsePrimitivePredicate(Class<T> clazz, String input) {
         if (clazz == Boolean.class) {
             if (!(input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false")))
                 throw new IllegalArgumentException("booleans can only be true or false");
@@ -64,14 +68,14 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
                 }
             }
         } else if (clazz == String.class) {
-            return (BiPredicate<TradeWrapper, TField>) parseStringPredicate(input);
+            return (BiPredicate<TradeWrapper, T>) parseStringPredicate(input);
         }
         throw new UnsupportedOperationException();
     }
 
     protected static final Pattern STRING_PATTERN = Pattern.compile("^(==?|contains|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
-    public static BiPredicate<TradeWrapper, String> parseStringPredicate(String input) {
+    private static BiPredicate<TradeWrapper, String> parseStringPredicate(String input) {
         Matcher matcher = STRING_PATTERN.matcher(input);
         if (!matcher.matches()) {
             return (ignored, obj) -> input.equalsIgnoreCase(obj);
@@ -114,7 +118,12 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
 
     @Override
     public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(@Nullable String input) throws IllegalArgumentException {
-        BiFunction<TradeWrapper, TField, ?> transformer = null;
+        return parsePrimitiveTransformer(clazz, input);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> @NotNull BiFunction<TradeWrapper, T, T> parsePrimitiveTransformer(Class<T> clazz, @Nullable String input) {
+        BiFunction<TradeWrapper, T, ?> transformer = null;
         // default values for null
         if (input == null) {
             if (clazz == Boolean.class) {
@@ -147,8 +156,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
 
         if (transformer == null)
             throw new UnsupportedOperationException();
-        // noinspection unchecked
-        return (BiFunction<TradeWrapper, TField, TField>) transformer;
+        return (BiFunction<TradeWrapper, T, T>) transformer;
     }
 
     @Override
