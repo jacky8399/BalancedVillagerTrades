@@ -36,34 +36,6 @@ public interface Field<TOwner, TField> {
         return new FieldProxy<>(this, field, null);
     }
 
-    default <TInner> Field<TOwner, TInner> chain(Field<TField, TInner> field) {
-        if (field == null)
-            return null;
-        return new Field<>() {
-            @Override
-            public TInner get(TOwner owner) {
-                return field.get(Field.this.get(owner));
-            }
-
-            @Override
-            public void set(TOwner owner, TInner value) {
-                TField val = Field.this.get(owner);
-                field.set(val, value);
-                Field.this.set(owner, val);
-            }
-
-            @Override
-            public boolean isReadOnly() {
-                return field.isReadOnly();
-            }
-
-            @Override
-            public Class<TInner> getFieldClass() {
-                return field.getFieldClass();
-            }
-        };
-    }
-
     static <TOwner, TField> Field<TOwner, TField> field(Class<TField> clazz, Function<TOwner, TField> getter, @Nullable BiConsumer<TOwner, TField> setter) {
         return new SimpleField<>(clazz, getter, setter);
     }

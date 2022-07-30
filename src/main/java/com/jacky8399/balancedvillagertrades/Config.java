@@ -19,6 +19,8 @@ public class Config {
         nerfNegativeReputationOnKilledRadius = config.getDouble("nerfs.negative-reputation-on-killed.radius");
         nerfNegativeReputationOnKilledReputationPenalty = clamp(config.getInt("nerfs.negative-reputation-on-killed.reputation-penalty"), 1, 100);
 
+        luaAllowIO = config.getBoolean("lua.allow-io");
+
         parseRecipes();
     }
 
@@ -64,6 +66,8 @@ public class Config {
     public static int clamp(int original, int min, int max) {
         return Math.max(Math.min(original, max), min);
     }
+
+    public static boolean luaAllowIO;
 
     public static boolean nerfNegativeReputationOnKilled;
     public static double nerfNegativeReputationOnKilledRadius;

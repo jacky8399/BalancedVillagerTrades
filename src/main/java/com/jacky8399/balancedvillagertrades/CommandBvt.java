@@ -18,6 +18,8 @@ import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.LuaError;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -117,7 +119,16 @@ public class CommandBvt implements TabExecutor {
                     sender.sendMessage(ChatColor.LIGHT_PURPLE + "Field lookup: " + field);
                 }
                 Object value = field.get(wrapper);
-                sender.sendMessage(ChatColor.GREEN + args[2] + " is " + value + " (type=" + value.getClass().getSimpleName() + ")");
+                sender.sendMessage(ChatColor.GREEN + args[2] + " is " + value +
+                        " (type=" + field.getFieldClass().getSimpleName() + ")");
+
+                if (field.isComplex()) {
+                    Collection<String> children = field.getFields(wrapper);
+                    if (children != null)
+                        sender.sendMessage(ChatColor.YELLOW + "  (contains fields: " + String.join(", ", children) + ")");
+                    else
+                        sender.sendMessage(ChatColor.YELLOW + "  (may contain more fields)");
+                }
                 return true;
             } else if (args[0].equalsIgnoreCase("script")) {
                 if (args.length == 1) {
@@ -126,7 +137,17 @@ public class CommandBvt implements TabExecutor {
                 }
                 String script = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
                 try {
-                    ScriptUtils.run(script, null);
+                    var globals = ScriptUtils.createSandbox();
+                    // try to redirect stdout to player chat
+                    var baos = new ByteArrayOutputStream();
+                    globals.STDOUT = new PrintStream(baos);
+                    var chunk = globals.load(script);
+                    chunk.call();
+                    globals.STDOUT.flush();
+                    var output = baos.toString();
+                    if (!output.isEmpty()) {
+                        sender.sendMessage(ChatColor.YELLOW + "[STDOUT] " + output);
+                    }
                 } catch (LuaError ex) {
                     sender.sendMessage(ChatColor.RED + "[Script Error] " + ex);
                     ex.printStackTrace();

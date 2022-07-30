@@ -44,9 +44,14 @@ public class NamespacedKeyField<TOwner> extends SimpleField<TOwner, NamespacedKe
     public @NotNull BiFunction<TradeWrapper, NamespacedKey, NamespacedKey> parseTransformer(@Nullable String input) throws IllegalArgumentException {
         if (input == null)
             return (ignored, old) -> null;
-        NamespacedKey key = NamespacedKey.fromString(input);
+        NamespacedKey key = NamespacedKey.fromString(input.toLowerCase(Locale.ENGLISH));
         if (key == null)
             throw new IllegalArgumentException("Invalid resource location " + input);
         return (ignored, old) -> key;
+    }
+
+    @Override
+    public String toString() {
+        return "NamespaceKeyField{readonly=" + isReadOnly() + "}";
     }
 }

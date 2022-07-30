@@ -90,7 +90,7 @@ public class FieldPredicate extends TradePredicate {
         try {
             return field.parsePredicate(trimmed);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Don't know how to test against " + field.fieldName
+            throw new IllegalArgumentException("Don't know how to test against " + field
                     + " (type=" + field.getFieldClass().getSimpleName() + ") for input " + trimmed, ex);
         }
     }

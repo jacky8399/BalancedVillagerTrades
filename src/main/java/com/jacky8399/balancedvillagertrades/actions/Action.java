@@ -33,7 +33,13 @@ public abstract class Action implements Consumer<TradeWrapper> {
         if (luaString != null) {
             if (!(luaString instanceof String string))
                 throw new IllegalArgumentException("Expected string at 'lua' section");
-            actions.add(ActionLua.fromString(string));
+            actions.add(ActionLua.fromString(name, string));
+        }
+        Object luaFileString = map.get("lua-file");
+        if (luaFileString != null) {
+            if (!(luaFileString instanceof String string))
+                throw new IllegalArgumentException("Expected string at 'lua-file' section");
+            actions.add(ActionLua.fromFile(name, string));
         }
         if (actions.size() == 0)
             throw new IllegalArgumentException("Empty action");

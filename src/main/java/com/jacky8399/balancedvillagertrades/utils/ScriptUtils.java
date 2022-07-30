@@ -1,17 +1,16 @@
 package com.jacky8399.balancedvillagertrades.utils;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ContainerField;
 import com.jacky8399.balancedvillagertrades.fields.Field;
-import com.jacky8399.balancedvillagertrades.fields.Fields;
-import org.jetbrains.annotations.Nullable;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.*;
+import org.luaj.vm2.lib.jse.JseIoLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.logging.Logger;
 
 public class ScriptUtils {
@@ -56,25 +55,38 @@ public class ScriptUtils {
         globals.set("enchantments", enchantments);
     }
 
-    public static void run(String script, @Nullable TradeWrapper trade) throws LuaError {
+    public static Globals createSandbox() {
         var globals = new Globals();
         globals.load(new BaseLib());
-        globals.finder = filename -> null;
         globals.load(new PackageLib());
         globals.load(new Bit32Lib());
         globals.load(new TableLib());
         globals.load(new StringLib());
         globals.load(new JseMathLib());
+        if (!Config.luaAllowIO) {
+            globals.finder = filename -> null;
+        } else {
+            var dataFolder = BalancedVillagerTrades.INSTANCE.getDataFolder();
+            globals.finder = filename -> {
+                File file = new File(dataFolder, filename);
+                try {
+                    return file.exists() ? new FileInputStream(file) : null;
+                } catch (IOException ignored) {
+                    return null;
+                }
+            };
+            globals.load(new JseIoLib());
+        }
         LoadState.install(globals);
         LuaC.install(globals);
 
         injectUtils(globals);
 
-        if (trade != null) {
-            globals.set("trade", new FieldWrapper(trade, Fields.ROOT_FIELD));
-        }
-        var chunk = globals.load(script);
-        chunk.call();
+        return globals;
+    }
+
+    public static LuaTable wrapField(TradeWrapper trade, ContainerField<TradeWrapper, ?> field) {
+        return new FieldWrapper(trade, field);
     }
 
     static class FieldWrapper extends LuaTable {
@@ -94,10 +106,14 @@ public class ScriptUtils {
 
             if (child == null) {
                 return LuaValue.NIL;
-            } else if (child.isComplex()) {
+            }
+
+            Object value = child.get(trade);
+            // null cannot have fields... right?
+            // this will totally not cause problems in the future
+            if (value != null && child.isComplex()) {
                 return new FieldWrapper(trade, child);
             } else {
-                Object value = child.get(trade);
                 if (value instanceof Integer num) {
                     return LuaValue.valueOf(num);
                 } else if (value instanceof Boolean bool) {

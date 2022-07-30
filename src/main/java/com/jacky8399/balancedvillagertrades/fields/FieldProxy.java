@@ -20,7 +20,8 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
     }
 
     public boolean isComplex() {
-        return child instanceof ContainerField;
+        return child instanceof ContainerField &&
+                !(child instanceof FieldProxy<?,?,?> childProxy && !childProxy.isComplex()); // check for complex chains
     }
 
     @Nullable
@@ -99,7 +100,7 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
         return child.parseTransformer(input);
     }
 
-    private String formatField() {
+    protected String formatField() {
         return getSimpleName() + " (" + child.toString() + ")";
     }
 

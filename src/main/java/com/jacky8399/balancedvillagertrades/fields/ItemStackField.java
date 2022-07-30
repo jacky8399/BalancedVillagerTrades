@@ -24,6 +24,19 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
 
     // I'm lazy
     private static final Field<ItemStack, ItemMeta> META_FIELD = FieldProxy.emptyAccessor(new SimpleField<>(ItemMeta.class, ItemStack::getItemMeta, ItemStack::setItemMeta));
+    private static <T> Field<ItemStack, T> metaField(Field<ItemMeta, T> field) {
+        return new FieldProxy<>(META_FIELD, field, "[intermediate]") {
+            @Override
+            protected String formatField() {
+                return child.toString();
+            }
+
+            @Override
+            public String toString() {
+                return child.toString();
+            }
+        };
+    }
 
     private static final MapField<ItemStack, Enchantment, Integer> ENCHANTMENT_FIELD = new MapField<>(
             is -> {
@@ -68,15 +81,16 @@ public class ItemStackField<T> extends SimpleField<T, ItemStack> implements Cont
                         is.setType(Objects.requireNonNull(Registry.MATERIAL.get(key), "Invalid item " + key));
                     }))
             .put("enchantments", ENCHANTMENT_FIELD)
-            .put("damage", META_FIELD.chain(new SimpleField<>(Integer.class,
+            .put("damage", metaField(new SimpleField<>(Integer.class,
                     meta -> meta instanceof Damageable damageable ? damageable.getDamage() : 0,
                     (meta, damage) -> {
                         if (meta instanceof Damageable damageable)
                             damageable.setDamage(damage);
                     })))
-            .put("name", META_FIELD.chain(new SimpleField<>(String.class,
-                    meta -> meta.hasDisplayName() ? meta.getDisplayName() : null, ItemMeta::setDisplayName)))
-            .put("unbreakable", META_FIELD.chain(new SimpleField<>(Boolean.class,
+            .put("name", metaField(new SimpleField<>(String.class,
+                    meta -> meta.hasDisplayName() ? meta.getDisplayName() : null,
+                    ItemMeta::setDisplayName)))
+            .put("unbreakable", metaField(new SimpleField<>(Boolean.class,
                     ItemMeta::isUnbreakable, ItemMeta::setUnbreakable)))
             .build();
 

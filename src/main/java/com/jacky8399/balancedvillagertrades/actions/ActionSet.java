@@ -34,7 +34,7 @@ public class ActionSet extends Action {
         Object value = field.get(tradeWrapper);
         Object newValue;
         try {
-            newValue =((BiFunction) transformer).apply(tradeWrapper, value);
+            newValue = ((BiFunction) transformer).apply(tradeWrapper, value);
         } catch (Exception ex) {
             BalancedVillagerTrades.LOGGER.severe("Failed to transform value " + value + " for field " + field.fieldName);
             ex.printStackTrace();
@@ -92,8 +92,8 @@ public class ActionSet extends Action {
         try {
             return field.parseTransformer(trimmed);
         } catch (Exception ex) {
-            throw new IllegalArgumentException("Don't know how to transform " + field.fieldName
-                    + "(type=" + field.getFieldClass().getSimpleName() + ") for input " + trimmed);
+            throw new IllegalArgumentException("Don't know how to transform " + field
+                    + "(type=" + field.getFieldClass().getSimpleName() + ") for input " + trimmed, ex);
         }
     }
 

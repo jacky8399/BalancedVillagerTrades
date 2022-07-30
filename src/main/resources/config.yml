@@ -7,3 +7,6 @@ nerfs:
     enabled: true
     radius: 16
     reputation-penalty: 25
+
+lua:
+  allow-io: false
