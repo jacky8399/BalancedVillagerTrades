@@ -24,11 +24,9 @@ public class ActionLua extends Action {
     @Override
     public void accept(TradeWrapper wrapper) {
         try {
-            var globals = ScriptUtils.createSandbox();
-            globals.set("trade", ScriptUtils.wrapField(wrapper, Fields.ROOT_FIELD));
-
-            var chunk = globals.load(script, chunkName);
-            chunk.call();
+            ScriptUtils.runScriptInSandbox(script, chunkName, ScriptUtils.createSandbox(globals -> {
+                globals.set("trade", ScriptUtils.wrapField(wrapper, Fields.ROOT_FIELD));
+            }));
         } catch (LuaError ex) {
             BalancedVillagerTrades.LOGGER.severe("An error occurred while running script in recipe " + recipeName + ":");
             ex.printStackTrace();

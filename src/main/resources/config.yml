@@ -9,4 +9,4 @@ nerfs:
     reputation-penalty: 25
 
 lua:
-  allow-io: false
+  max-instructions: 1000

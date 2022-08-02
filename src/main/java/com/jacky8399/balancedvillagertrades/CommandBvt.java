@@ -1,11 +1,11 @@
 package com.jacky8399.balancedvillagertrades;
 
 import com.jacky8399.balancedvillagertrades.actions.Action;
-import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
-import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.fields.Field;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
+import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -141,8 +141,9 @@ public class CommandBvt implements TabExecutor {
                     // try to redirect stdout to player chat
                     var baos = new ByteArrayOutputStream();
                     globals.STDOUT = new PrintStream(baos);
-                    var chunk = globals.load(script);
-                    chunk.call();
+
+                    ScriptUtils.runScriptInSandbox(script, "[script]", globals);
+
                     globals.STDOUT.flush();
                     var output = baos.toString();
                     if (!output.isEmpty()) {

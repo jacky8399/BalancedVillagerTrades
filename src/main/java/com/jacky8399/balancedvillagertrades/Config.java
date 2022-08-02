@@ -14,12 +14,17 @@ import java.util.logging.Logger;
 public class Config {
     public static void reloadConfig() {
         FileConfiguration config = BalancedVillagerTrades.INSTANCE.getConfig();
+        Logger logger = BalancedVillagerTrades.LOGGER;
 
         nerfNegativeReputationOnKilled = config.getBoolean("nerfs.negative-reputation-on-killed.enabled");
         nerfNegativeReputationOnKilledRadius = config.getDouble("nerfs.negative-reputation-on-killed.radius");
         nerfNegativeReputationOnKilledReputationPenalty = clamp(config.getInt("nerfs.negative-reputation-on-killed.reputation-penalty"), 1, 100);
 
-        luaAllowIO = config.getBoolean("lua.allow-io");
+//        luaAllowIO = config.getBoolean("lua.allow-io");
+        if (luaAllowIO) {
+            logger.warning("allow-io enabled. Lua scripts may read files.");
+        }
+        luaMaxInstructions = config.getInt("lua.max-instructions");
 
         parseRecipes();
     }
@@ -68,6 +73,7 @@ public class Config {
     }
 
     public static boolean luaAllowIO;
+    public static int luaMaxInstructions;
 
     public static boolean nerfNegativeReputationOnKilled;
     public static double nerfNegativeReputationOnKilledRadius;
