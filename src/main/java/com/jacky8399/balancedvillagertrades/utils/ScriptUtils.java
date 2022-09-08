@@ -3,7 +3,9 @@ package com.jacky8399.balancedvillagertrades.utils;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ContainerField;
-import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.EnchantmentsField;
+import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
+import com.jacky8399.balancedvillagertrades.fields.LuaProxy;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.*;
@@ -12,33 +14,15 @@ import org.luaj.vm2.lib.jse.JseIoLib;
 import org.luaj.vm2.lib.jse.JseMathLib;
 
 import java.io.*;
+import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 // some code adapted from https://github.com/luaj/luaj/blob/master/examples/jse/SampleSandboxed.java
 public class ScriptUtils {
     private static final Logger LOGGER = BalancedVillagerTrades.LOGGER;
     private static Globals scriptCompiler;
-
-    private static void redirectOutput(Globals globals) {
-        // TODO fix
-        globals.STDOUT = new PrintStream(new ByteArrayOutputStream(), true) {
-            @Override
-            public void flush() {
-                String str = out.toString();
-                LOGGER.info("[Script] " + str);
-                out = new ByteArrayOutputStream();
-            }
-        };
-        globals.STDERR = new PrintStream(new ByteArrayOutputStream(), true) {
-            @Override
-            public void flush() {
-                String str = out.toString();
-                LOGGER.severe("[Script] " + str);
-                out = new ByteArrayOutputStream();
-            }
-        };
-    }
 
     private static void injectUtils(Globals globals) {
         var enchantments = new LuaTable();
@@ -138,20 +122,55 @@ public class ScriptUtils {
         }
     }
 
-    public static LuaTable wrapField(TradeWrapper trade, ContainerField<TradeWrapper, ?> field) {
-        return new FieldWrapper(trade, field);
+    public static <T> LuaValue wrapField(T trade, ContainerField<T, ?> field) {
+        return new FieldWrapper<T>(trade, field instanceof FieldProxy proxy ? proxy : FieldProxy.emptyAccessor(field));
     }
 
-    static class FieldWrapper extends LuaTable {
-        private final TradeWrapper trade;
-        private final ContainerField<TradeWrapper, ?> field;
-        FieldWrapper(TradeWrapper trade, ContainerField<TradeWrapper, ?> field) {
+    public static <T> LuaFunction getIteratorFor(Collection<? extends T> collection, Function<T, Varargs> deconstructor) {
+        var iterator = collection.iterator();
+        var iteratorFunction = new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                if (!iterator.hasNext())
+                    return LuaValue.NIL;
+                T next = iterator.next();
+                return deconstructor.apply(next);
+            }
+        };
+        // return something like an iterable
+        return new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                return iteratorFunction;
+            }
+        };
+    }
+
+    static class FieldWrapper<T> extends LuaTable {
+        private final T trade;
+        private final FieldProxy<T, ?, ?> field;
+        FieldWrapper(T trade, FieldProxy<T, ?, ?> field) {
             this.trade = trade;
             this.field = field;
         }
 
         @Override
         public LuaValue rawget(LuaValue key) {
+            if (key.isstring() && "children".equals(key.tojstring())) {
+                var fields = field.getFields(trade);
+                if (fields != null) {
+                    return getIteratorFor(fields, LuaValue::valueOf);
+                } else {
+                    return error("Cannot iterate children of non-container field " + field);
+                }
+            } else if (field.child instanceof LuaProxy<?> luaProxy) {
+                Object instance = field.get(trade);
+                @SuppressWarnings({"rawtypes", "unchecked"})
+                var intercepted = ((LuaProxy) luaProxy).getProperty(instance, key);
+                if (intercepted != null)
+                    return intercepted;
+            }
+
             String fieldName = key.checkjstring();
             var child = field.getFieldWrapped(fieldName);
             if (child == null && fieldName.indexOf('_') > -1) // access fields with hyphens
@@ -182,8 +201,14 @@ public class ScriptUtils {
         @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
         public void rawset(LuaValue key, LuaValue value) {
+            if (field.child instanceof LuaProxy<?> proxy) {
+                Object instance = field.get(trade);
+                if (((LuaProxy) proxy).setProperty(instance, key, value))
+                    return;
+            }
+
             String fieldName = key.checkjstring().replace('_', '-');
-            var child = (Field) field.getFieldWrapped(fieldName);
+            var child = (FieldProxy) field.getFieldWrapped(fieldName);
             if (child != null) {
                 Class<?> clazz = child.getFieldClass();
                 if (clazz == String.class) {
@@ -193,14 +218,26 @@ public class ScriptUtils {
                 } else if (clazz == Boolean.class) {
                     child.set(trade, value.checkboolean());
                 } else {
-                    throw new LuaError("Cannot assign " + value.typename() + " to " + clazz.getSimpleName());
+                    throw new LuaError("Cannot assign " + value.typename() + " to field " + child.fieldName + " (" + clazz.getSimpleName() + ")");
                 }
             }
         }
 
+        static boolean warnNextDeprecation = true;
+        static boolean warnNextDeprecationEnchantment = true;
         String[] children;
         @Override
         public Varargs next(LuaValue key) {
+            if (warnNextDeprecationEnchantment && field.child instanceof EnchantmentsField) {
+                LOGGER.warning("Using the built-in Lua function next() is deprecated for enchantments. " +
+                        "Please use enchantments:entries() to get a key-value pair of enchantments.");
+                warnNextDeprecationEnchantment = false;
+            } else if (warnNextDeprecation) {
+                LOGGER.warning("Using the built-in Lua function next() is deprecated for container fields. " +
+                        "Please use field:children() to get a key-value pair of properties.");
+            }
+
+
             if (children == null) {
                 var childrenFields = field.getFields(trade);
                 if (childrenFields == null)
@@ -228,9 +265,10 @@ public class ScriptUtils {
         }
 
         @Override
-        public LuaValue setmetatable(LuaValue metatable) {
-            return this;
-        }
+        public LuaValue setmetatable(LuaValue metatable) { return error("table is read-only"); }
+        public void set(int key, LuaValue value) { error("table is read-only"); }
+        public void rawset(int key, LuaValue value) { error("table is read-only"); }
+        public LuaValue remove(int pos) { return error("table is read-only"); }
 
         @Override
         public LuaValue tostring() {

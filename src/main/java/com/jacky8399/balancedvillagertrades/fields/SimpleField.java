@@ -117,7 +117,7 @@ public class SimpleField<TOwner, TField> implements Field<TOwner, TField> {
     }
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(@Nullable String input) throws IllegalArgumentException {
+    public @NotNull BiFunction<TradeWrapper, TField, TField> parseTransformer(@Nullable String input) {
         return parsePrimitiveTransformer(clazz, input);
     }
 
