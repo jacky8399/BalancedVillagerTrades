@@ -5,6 +5,8 @@ import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +17,22 @@ import static org.junit.jupiter.api.Assertions.*;
 public class LuaTest {
 
     public static LuaValue run(String script) {
-        return ScriptUtils.runScriptInSandbox(script, ".", ScriptUtils.createSandbox());
+        return run(script, ignored -> {});
     }
 
     public static LuaValue run(String script, Consumer<Globals> globalsConsumer) {
-        return ScriptUtils.runScriptInSandbox(script, ".", ScriptUtils.createSandbox(globalsConsumer));
+        var baos = new ByteArrayOutputStream();
+        var printStream = new PrintStream(baos, true);
+        var returnValue = ScriptUtils.runScriptInSandbox(script, ".", ScriptUtils.createSandbox(globals -> {
+            globals.STDOUT = printStream;
+            globalsConsumer.accept(globals);
+        }));
+        printStream.flush();
+        var stdout = baos.toString();
+        if (!stdout.isEmpty()) {
+            System.out.println(stdout);
+        }
+        return returnValue;
     }
 
     @Test
