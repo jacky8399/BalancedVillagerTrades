@@ -60,11 +60,7 @@ public class NMSReputationProvider extends ReputationProvider {
             Class.forName("com.destroystokyo.paper.entity.villager.Reputation");
             BalancedVillagerTrades.REPUTATION = new PaperReputationProvider();
         } catch (ClassNotFoundException ignored) {
-            if ("v1_19_R1".equals(mappingsVersion)) {
-                BalancedVillagerTrades.REPUTATION = new NMSNewReputationProvider();
-            } else {
-                BalancedVillagerTrades.REPUTATION = new NMSReputationProvider();
-            }
+            BalancedVillagerTrades.REPUTATION = new NMSReputationProvider();
         }
 
     }

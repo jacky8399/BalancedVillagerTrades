@@ -2,7 +2,6 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'io.papermc.paperweight.userdev' version "1.3.7"
 }
 
 group = 'com.jacky8399'
@@ -26,7 +25,6 @@ repositories {
 }
 
 dependencies {
-    paperweightDevelopmentBundle("io.papermc.paper:dev-bundle:1.19-R0.1-SNAPSHOT")
     compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
     compileOnly 'org.jetbrains:annotations:23.0.0'
     implementation 'org.bstats:bstats-bukkit:3.0.0'
@@ -56,5 +54,5 @@ shadowJar {
     relocate 'org.luaj', 'com.jacky8399.balancedvillagertrades.luaj'
 }
 
-assemble.dependsOn reobfJar
+//assemble.dependsOn reobfJar
 jar.dependsOn shadowJar
