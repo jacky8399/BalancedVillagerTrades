@@ -21,7 +21,6 @@ import org.luaj.vm2.LuaError;
 import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.bukkit.ChatColor.RED;
 
@@ -78,7 +77,7 @@ public class CommandBvt implements TabExecutor {
 
             case "getfield" -> {
                 if (args.length == 1) {
-                    sender.sendMessage(RED + "Usage: /bvt getfield <villager> <");
+                    sender.sendMessage(RED + "Usage: /bvt getfield <villager> <recipeId>|-1 <field>");
                     Map<String, ? extends Field<TradeWrapper, ?>> fieldMap =
                             new TreeMap<>(Fields.listFields(null, null, null));
                     sender.sendMessage(ChatColor.GREEN + "All fields:");
@@ -89,25 +88,22 @@ public class CommandBvt implements TabExecutor {
                 TradeWrapper wrapper;
                 try {
                     Villager villager = selectVillager(sender, args[1]);
-                    if (args.length >= 4) {
-                        int recipeId = Integer.parseInt(args[3]);
-                        wrapper = new TradeWrapper(villager, villager.getRecipe(recipeId), recipeId, false);
-                    } else {
-                        wrapper = new TradeWrapper(villager, null, -1, false);
-                    }
-                } catch (NumberFormatException | IndexOutOfBoundsException ex) {
-                    sender.sendMessage(RED + "Invalid recipe index " + args[3]);
+                    int recipeId = Integer.parseInt(args[2]);
+                    wrapper = new TradeWrapper(villager, recipeId != -1 ?
+                            villager.getRecipe(recipeId) : null, recipeId, false);
+                } catch (NumberFormatException ex) {
+                    sender.sendMessage(RED + "Invalid recipe index " + args[2]);
                     return true;
                 } catch (IllegalArgumentException ex) {
                     sender.sendMessage(ex.getMessage());
                     return true;
                 }
-                FieldProxy<TradeWrapper, ?, ?> field = Fields.findField(null, args[2], true);
+                FieldProxy<TradeWrapper, ?, ?> field = Fields.findField(null, args[3], true);
                 if (args.length == 5 && "debugaccessor".equals(args[4])) {
                     sender.sendMessage(ChatColor.LIGHT_PURPLE + "Field lookup: " + field);
                 }
                 Object value = field.get(wrapper);
-                sender.sendMessage(ChatColor.GREEN + args[2] + " is " + value + " (type=" + field.getFieldClass().getSimpleName() + ")");
+                sender.sendMessage(ChatColor.GREEN + args[3] + " is " + value + " (type=" + field.getFieldClass().getSimpleName() + ")");
                 if (field.isComplex()) {
                     Collection<String> children = field.getFields(wrapper);
                     if (children != null)
@@ -179,13 +175,18 @@ public class CommandBvt implements TabExecutor {
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
+        String input = args[args.length - 1];
+        return filterInput(input, tabComplete(sender, args));
+    }
+
+    private Iterable<String> tabComplete(@NotNull CommandSender sender, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("reload", "recipes", "recipe", "script", "runscriptfile", "getfield");
+            return List.of("reload", "recipes", "recipe", "script", "runscriptfile", "getfield");
         } else if (args[0].equalsIgnoreCase("recipe")) {
             if (args.length == 2) {
-                return new ArrayList<>(Recipe.RECIPES.keySet());
+                return Recipe.RECIPES.keySet();
             } else if (args.length == 3) {
-                return Arrays.asList("info", "enable", "disable");
+                return List.of("info", "enable", "disable");
             }
         } else if (args[0].equalsIgnoreCase("getfield") || args[0].equalsIgnoreCase("runscriptfile")) {
             boolean getField = args[0].equalsIgnoreCase("getfield");
@@ -195,25 +196,39 @@ public class CommandBvt implements TabExecutor {
                 try {
                     Villager villager = selectVillager(sender, args[1]);
                     // show recipe IDs for:
-                    // /bvt getfield <villager> <field> recipeId
+                    // /bvt getfield <villager> recipeId
                     // /bvt runscriptfile <villager> recipeId
-                    if ((getField && args.length == 4) || (!getField && args.length == 3)) {
-                        return IntStream.range(0, villager.getRecipeCount())
-                                .mapToObj(Integer::toString)
-                                .collect(Collectors.toList());
-                    } else if (getField && args.length == 3) {
-                        var tempWrapper = new TradeWrapper(villager, null, -1, false);
-                        return List.copyOf(Fields.listFields(null, null, tempWrapper).keySet());
+                    if (args.length == 3) {
+                        List<String> list = new ArrayList<>();
+                        list.add("-1");
+                        for (int i = 0; i < villager.getRecipeCount(); i++) {
+                            list.add(Integer.toString(i));
+                        }
+                        return list;
+                    } else if (getField && args.length == 4) {
+                        int recipeId = Integer.parseInt(args[2]);
+                        var tempWrapper = new TradeWrapper(villager, recipeId != -1 ? villager.getRecipe(recipeId) : null, recipeId, false);
+                        return completeFieldNames(args[args.length - 1], tempWrapper);
                     }
-                } catch (IllegalArgumentException ignored) {
+                } catch (IllegalArgumentException | IndexOutOfBoundsException ignored) {
                     if (getField && args.length == 3) {
-                        return List.copyOf(Fields.listFields(null, null, null).keySet());
+                        return completeFieldNames(args[args.length - 1], null);
                     }
                 }
             }
-            return Collections.emptyList();
+            return List.of();
         }
-        return Collections.emptyList();
+        return List.of();
+    }
+
+    private static List<String> filterInput(String input, Iterable<String> collection) {
+        var list = new ArrayList<String>();
+        for (String string : collection) {
+            if (string.regionMatches(true, 0, input, 0, input.length())) {
+                list.add(string);
+            }
+        }
+        return list;
     }
 
     private static Villager selectVillager(CommandSender sender, String selector) throws IllegalArgumentException {
@@ -246,5 +261,37 @@ public class CommandBvt implements TabExecutor {
             }
         }
         return completions;
+    }
+
+    // Only list requested fields
+    // For example, given input "villager", returns "villager", "villager." (to indicate that it has children fields),
+    // and other sibling fields.
+    // Given input "villager.", returns all children fields under "children"
+    private static List<String> completeFieldNames(String input, TradeWrapper context) {
+        List<String> fields = new ArrayList<>();
+        int dot = input.lastIndexOf('.');
+        Collection<String> children;
+        FieldProxy<TradeWrapper, ?, ?> parent;
+        String parentPath;
+        if (dot == -1) {
+            parent = FieldProxy.emptyAccessor(Fields.ROOT_FIELD);
+            children = Fields.FIELDS.keySet();
+            parentPath = "";
+        } else {
+            parent = Fields.findField(null, input.substring(0, dot), true);
+            children = parent.getFields(context);
+            parentPath = input.substring(0, dot + 1);
+        }
+
+        if (children != null) {
+            for (String child : children) {
+                String childPath = parentPath + child;
+                if (FieldProxy.isComplex(parent.getField(child))) {
+                    fields.add(childPath + ".");
+                }
+                fields.add(childPath);
+            }
+        }
+        return fields;
     }
 }

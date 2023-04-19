@@ -184,7 +184,7 @@ public class ScriptUtils {
             // null cannot have fields... right?
             // this will totally not cause problems in the future
             if (value != null && child.isComplex()) {
-                return new FieldWrapper(trade, child);
+                return new FieldWrapper<>(trade, child);
             } else {
                 if (value instanceof Integer num) {
                     return LuaValue.valueOf(num);

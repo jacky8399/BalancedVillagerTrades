@@ -20,8 +20,13 @@ public class FieldProxy<TOwner, T, TField> implements ContainerField<TOwner, TFi
     }
 
     public boolean isComplex() {
-        return child instanceof ContainerField &&
-                !(child instanceof FieldProxy<?,?,?> childProxy && !childProxy.isComplex()); // check for complex chains
+        return isComplex(child);
+    }
+
+    public static boolean isComplex(Field<?, ?> field) {
+        return field instanceof ContainerField &&
+                !(field instanceof FieldProxy<?,?,?> childProxy && !childProxy.isComplex()); // check for complex chains
+
     }
 
     @Nullable

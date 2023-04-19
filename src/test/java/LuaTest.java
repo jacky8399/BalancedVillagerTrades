@@ -79,4 +79,9 @@ public class LuaTest {
                 ))
         ).checkjstring());
     }
+
+    @Test
+    public void loadFileTest() {
+        assertEquals(LuaValue.NIL, run("return loadfile(\"test.lua\")"));
+    }
 }

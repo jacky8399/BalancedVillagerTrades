@@ -11,18 +11,12 @@ import org.bukkit.inventory.Merchant;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
     private static <T> Field<Villager, T> field(Class<T> clazz, Function<Villager, T> function) {
@@ -143,11 +137,22 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
         public @Nullable Collection<String> getFields(Villager villager) {
             if (villager == null)
                 return Arrays.asList("size", "empty");
+            List<String> fields = new ArrayList<>();
+            fields.add("size");
+            fields.add("empty");
+            // slot accessors
             ItemStack[] items = villager.getInventory().getContents();
-            return Stream.concat(
-                    IntStream.range(0, items.length).mapToObj(Integer::toString),
-                    Arrays.stream(items).map(ItemStack::getType).distinct().map(Material::name)
-            ).collect(Collectors.toList());
+            for (int i = 0; i < items.length; i++) {
+                fields.add(Integer.toString(i));
+            }
+            // item accessors
+            Set<Material> seen = new HashSet<>();
+            for (ItemStack item : items) {
+                if (item != null && seen.add(item.getType())) {
+                    fields.add(item.getType().getKey().toString());
+                }
+            }
+            return fields;
         }
     }
 }

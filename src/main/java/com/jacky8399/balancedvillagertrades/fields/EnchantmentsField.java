@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, LuaProxy<ItemMeta> {
-    private static final Field<ItemMeta, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, itemMeta -> itemMeta.getEnchants().size());
+    private static final Field<ItemMeta, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class,
+            itemMeta -> itemMeta instanceof EnchantmentStorageMeta storageMeta ?
+                    storageMeta.getStoredEnchants().size() :
+                    itemMeta.getEnchants().size());
     @Override
     public @Nullable Field<ItemMeta, ?> getField(String fieldName) {
         if ("size".equals(fieldName))

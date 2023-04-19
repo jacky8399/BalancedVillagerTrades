@@ -103,12 +103,17 @@ public class Fields {
             return fields.stream()
                     .flatMap(key -> {
                         FieldProxy<TradeWrapper, ?, ?> field = root.getFieldWrapped(key);
+                        String childPath = path + "." + key;
+                        var self = Stream.of(Map.entry(childPath, field));
                         if (field != null && field.isComplex()) {
-                            return listFields(field, path + "." + key, context)
-                                    .entrySet().stream();
-                        } else {
-                            return Stream.of(Maps.immutableEntry(path + "." + key, field));
+                            try {
+                                return Stream.concat(self,
+                                        listFields(field, path + "." + key, context)
+                                                .entrySet().stream());
+                            } catch (Exception ignored) {
+                            }
                         }
+                        return self;
                     })
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
