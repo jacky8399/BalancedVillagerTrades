@@ -6,6 +6,7 @@ import com.jacky8399.balancedvillagertrades.fields.ContainerField;
 import com.jacky8399.balancedvillagertrades.fields.EnchantmentsField;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.LuaProxy;
+import org.bukkit.NamespacedKey;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.*;
@@ -40,7 +41,7 @@ public class ScriptUtils {
             }
         });
 
-        globals.set("enchantments", enchantments);
+        globals.set("enchantments", new ReadOnlyLuaTable(enchantments));
     }
 
     public static Globals createSandbox() {
@@ -83,6 +84,7 @@ public class ScriptUtils {
             throw new Error("Script exceeded max-instruction in config.yml");
         }
     };
+    private static LuaThread runningScript;
     public static LuaValue runScriptInSandbox(Reader scriptReader, String chunkName, Globals globals) {
         if (scriptCompiler == null) {
             scriptCompiler = new Globals();
@@ -97,9 +99,11 @@ public class ScriptUtils {
 
         LuaValue chunk = scriptCompiler.load(scriptReader, chunkName, globals);
         LuaThread thread = new LuaThread(globals, chunk);
-
-        if (Config.luaMaxInstructions > 0) {
+        boolean loadDebug = Config.luaMaxInstructions > 0 ||
+                FieldWrapper.warnNextDeprecation || FieldWrapper.warnNextDeprecationEnchantment;
+        if (loadDebug)
             globals.load(new DebugLib());
+        if (Config.luaMaxInstructions > 0) {
             var sethookFunction = globals.get("debug").get("sethook");
             globals.set("debug", LuaValue.NIL);
             sethookFunction.invoke(LuaValue.varargsOf(new LuaValue[]{
@@ -107,8 +111,10 @@ public class ScriptUtils {
             }));
         }
 
+        runningScript = thread;
         // propagate errors from the protected call
         Varargs varargs = thread.resume(LuaValue.NIL);
+        runningScript = null;
         if (!varargs.arg1().checkboolean()) {
             throw new LuaError(varargs.arg(2).checkjstring());
         }
@@ -126,7 +132,7 @@ public class ScriptUtils {
         return new FieldWrapper<T>(trade, field instanceof FieldProxy proxy ? proxy : FieldProxy.emptyAccessor(field));
     }
 
-    public static <T> LuaFunction getIteratorFor(Collection<? extends T> collection, Function<T, Varargs> deconstructor) {
+    public static <T> LuaFunction iterator(Collection<? extends T> collection, Function<T, Varargs> deconstructor) {
         var iterator = collection.iterator();
         var iteratorFunction = new VarArgFunction() {
             @Override
@@ -155,11 +161,11 @@ public class ScriptUtils {
         }
 
         @Override
-        public LuaValue rawget(LuaValue key) {
+        public LuaValue get(LuaValue key) {
             if (key.isstring() && "children".equals(key.tojstring())) {
                 var fields = field.getFields(trade);
                 if (fields != null) {
-                    return getIteratorFor(fields, LuaValue::valueOf);
+                    return iterator(fields, LuaValue::valueOf);
                 } else {
                     return error("Cannot iterate children of non-container field " + field);
                 }
@@ -181,8 +187,6 @@ public class ScriptUtils {
             }
 
             Object value = child.get(trade);
-            // null cannot have fields... right?
-            // this will totally not cause problems in the future
             if (value != null && child.isComplex()) {
                 return new FieldWrapper<>(trade, child);
             } else {
@@ -200,7 +204,7 @@ public class ScriptUtils {
 
         @SuppressWarnings({"rawtypes", "unchecked"})
         @Override
-        public void rawset(LuaValue key, LuaValue value) {
+        public void set(LuaValue key, LuaValue value) {
             if (field.child instanceof LuaProxy<?> proxy) {
                 Object instance = field.get(trade);
                 if (((LuaProxy) proxy).setProperty(instance, key, value))
@@ -211,14 +215,25 @@ public class ScriptUtils {
             var child = (FieldProxy) field.getFieldWrapped(fieldName);
             if (child != null) {
                 Class<?> clazz = child.getFieldClass();
-                if (clazz == String.class) {
-                    child.set(trade, value.checkjstring());
-                } else if (clazz == Integer.class) {
-                    child.set(trade, value.checkint());
-                } else if (clazz == Boolean.class) {
-                    child.set(trade, value.checkboolean());
-                } else {
-                    throw new LuaError("Cannot assign " + value.typename() + " to field " + child.fieldName + " (" + clazz.getSimpleName() + ")");
+                try {
+                    if (clazz == String.class) {
+                        child.set(trade, value.checkjstring());
+                    } else if (clazz == Integer.class) {
+                        child.set(trade, value.checkint());
+                    } else if (clazz == Boolean.class) {
+                        child.set(trade, value.checkboolean());
+                    } else if (clazz == NamespacedKey.class) {
+                        NamespacedKey namespacedKey = NamespacedKey.fromString(value.checkjstring());
+                        if (namespacedKey == null)
+                            argerror("NamespacedKey");
+                        child.set(trade, namespacedKey);
+                    } else {
+                        error("Don't know how to assign Lua type %s to %s"
+                                .formatted(value.typename(), clazz.getSimpleName()));
+                    }
+                } catch (LuaError e) {
+                    throw new LuaError("Failed to set %s to %s: ".formatted(value.tojstring(), child.fieldName) +
+                            e.getMessage());
                 }
             }
         }
@@ -229,12 +244,19 @@ public class ScriptUtils {
         @Override
         public Varargs next(LuaValue key) {
             if (warnNextDeprecationEnchantment && field.child instanceof EnchantmentsField) {
-                LOGGER.warning("Using the built-in Lua function next() is deprecated for enchantments. " +
-                        "Please use enchantments:entries() to get a key-value pair of enchantments.");
+                LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for enchantments. " +
+                        "Please use enchantments.entries() to get a key-value pair of enchantments.");
+                LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#enchantments for more information.");
+                if (runningScript != null && runningScript.globals.debuglib != null)
+                    LOGGER.warning("Offending script: " + runningScript.globals.debuglib.traceback(1));
                 warnNextDeprecationEnchantment = false;
             } else if (warnNextDeprecation) {
-                LOGGER.warning("Using the built-in Lua function next() is deprecated for container fields. " +
-                        "Please use field:children() to get a key-value pair of properties.");
+                LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for container fields. " +
+                        "Please use field.children() to get a key set of properties.");
+                LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#container-fields for more information.");
+                if (runningScript != null && runningScript.globals.debuglib != null)
+                    LOGGER.warning("Offending script: " + runningScript.globals.debuglib.traceback(1));
+                warnNextDeprecation = false;
             }
 
 
@@ -259,7 +281,7 @@ public class ScriptUtils {
             }
             if (stringKey != null) {
                 var nextLuaKey = LuaValue.valueOf(stringKey);
-                return LuaValue.varargsOf(nextLuaKey, rawget(nextLuaKey));
+                return LuaValue.varargsOf(nextLuaKey, get(nextLuaKey));
             }
             return LuaValue.NIL;
         }

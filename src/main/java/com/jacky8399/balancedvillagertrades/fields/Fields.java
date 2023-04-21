@@ -31,13 +31,13 @@ public class Fields {
             entry("villager-experience", new SimpleField<>(Integer.class,
                     trade -> trade.getRecipe().getVillagerExperience(),
                     (trade, villagerXP) -> trade.getRecipe().setVillagerExperience(villagerXP))),
-            entry("ingredient-0", new ItemStackField<>(
+            entry("ingredient-0", ItemStackField.create(
                     trade -> trade.getRecipe().getIngredients().get(0),
                     (trade, stack) -> setIngredient(0, trade, stack))),
-            entry("ingredient-1", new ItemStackField<>(
+            entry("ingredient-1", ItemStackField.create(
                     trade -> trade.getRecipe().getIngredients().get(1),
                     (trade, stack) -> setIngredient(1, trade, stack))),
-            entry("result", new ItemStackField<>(trade -> trade.getRecipe().getResult(), Fields::setResult)),
+            entry("result", ItemStackField.create(trade -> trade.getRecipe().getResult(), Fields::setResult)),
             entry("villager", new VillagerField()),
             entry("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex)),
             entry("is-new", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))

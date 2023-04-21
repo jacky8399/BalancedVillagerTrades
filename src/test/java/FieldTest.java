@@ -1,12 +1,9 @@
 import com.google.common.collect.ImmutableMap;
-import com.jacky8399.balancedvillagertrades.fields.EnchantmentsField;
-import com.jacky8399.balancedvillagertrades.fields.Field;
-import com.jacky8399.balancedvillagertrades.fields.Fields;
-import com.jacky8399.balancedvillagertrades.fields.NamespacedKeyField;
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.fields.*;
 import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.BeforeAll;
@@ -18,18 +15,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class FieldTest {
     @BeforeAll
     public static void registerFakeEnchants() {
+        BalancedVillagerTrades.LOGGER = Logger.getLogger("BVT");
         FakeEnchantments.MENDING.getKey();
     }
 
 
     Map<String, Class<?>> fields = Map.of(
-            "ingredient-0", ItemStack.class,
+            "ingredient-0", ItemStackField.ItemStackWrapper.class,
             "ingredient-1.type", NamespacedKey.class,
             "result.enchantments.MENDING", Integer.class,
             "result.enchantments.minecraft:mending", Integer.class,
@@ -139,14 +140,16 @@ public class FieldTest {
             // create respective ItemMeta instances
 
             ItemMeta meta = DangerousMocks.mockEnchants(test.enchantments);
+            var wrapper = new ItemStackField.ItemStackWrapper(null, meta);
             EnchantmentStorageMeta storageMeta = DangerousMocks.mockStoredEnchants(test.enchantments);
+            var storageWrapper = new ItemStackField.ItemStackWrapper(null, storageMeta);
 
             for (String input : test.inputs()) {
                 var predicate = enchantmentField.parsePredicate(input);
 
-                assertEquals(test.expected(), predicate.test(null, meta), () ->
+                assertEquals(test.expected(), predicate.test(null, wrapper), () ->
                         "Test \"" + input + "\" failed for enchantments: " + test.enchantments);
-                assertEquals(test.expected(), predicate.test(null, storageMeta), () ->
+                assertEquals(test.expected(), predicate.test(null, storageWrapper), () ->
                         "Test \"" + input + "\" failed for stored enchantments: " + test.enchantments);
             }
         }
@@ -158,16 +161,31 @@ public class FieldTest {
                 FakeEnchantments.SILK_TOUCH, 1
         );
         ItemMeta meta = DangerousMocks.mockEnchants(enchants);
+        var wrapper = new ItemStackField.ItemStackWrapper(null, meta);
+        var stackField = ScriptUtils.wrapField(wrapper, new ItemStackField<>(Function.identity(), null));
         var script = """
                 str = ""
-                for k, v in field.entrySet() do
+                for k, v in item.enchantments.entries() do
                     str = str .. k .. "=" .. v .. "\\n"
                 end
                 return str
                 """;
         assertEquals("minecraft:fortune=3\nminecraft:silk_touch=1\n", LuaTest.run(script,
-                globals -> globals.set("field", ScriptUtils.wrapField(meta, enchantmentField))
+                globals -> globals.set("item", stackField)
         ).checkjstring());
+        // ensure that enchantments appear first in legacy next()
+        var legacyScript = """
+                k = next(item.enchantments)
+                return k .. "=" .. item.enchantments[k]
+                """;
+        assertEquals("minecraft:fortune=3", LuaTest.run(legacyScript,
+                globals -> globals.set("item", stackField)
+        ).checkjstring());
+    }
+
+    @Test
+    public void luaProxyTest() {
+        assertInstanceOf(LuaProxy.class, Fields.findField(null, "result.enchantments", true).child);
     }
 
 }

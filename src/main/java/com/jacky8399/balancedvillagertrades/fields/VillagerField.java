@@ -93,7 +93,7 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
 
             try {
                 int slot = Integer.parseInt(fieldName);
-                return new ItemStackField<>(inv -> {
+                return ItemStackField.create(inv -> {
                     ItemStack is = inv.getItem(slot);
                     return is != null ? is : new ItemStack(Material.AIR);
                 }, (inv, is) -> inv.setItem(slot, is));

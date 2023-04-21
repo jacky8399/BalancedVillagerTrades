@@ -1,5 +1,7 @@
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
@@ -11,6 +13,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,6 +36,11 @@ public class LuaTest {
             System.out.println(stdout);
         }
         return returnValue;
+    }
+
+    @BeforeAll
+    public static void setup() {
+        BalancedVillagerTrades.LOGGER = Logger.getLogger("BVT");
     }
 
     @Test
@@ -63,7 +71,7 @@ public class LuaTest {
                         end
                         return str
                         """,
-                globals -> globals.set("iterate", ScriptUtils.getIteratorFor(List.of("a", "b", "c"), LuaValue::valueOf))
+                globals -> globals.set("iterate", ScriptUtils.iterator(List.of("a", "b", "c"), LuaValue::valueOf))
         ).checkjstring());
 
         assertEquals("a1b2c3", run("""
@@ -73,7 +81,7 @@ public class LuaTest {
                         end
                         return str
                         """,
-                globals -> globals.set("iterate", ScriptUtils.getIteratorFor(
+                globals -> globals.set("iterate", ScriptUtils.iterator(
                         List.of(Map.entry("a", 1), Map.entry("b", 2), Map.entry("c", 3)),
                         entry -> LuaValue.varargsOf(LuaValue.valueOf(entry.getKey()), LuaValue.valueOf(entry.getValue()), LuaValue.NIL)
                 ))

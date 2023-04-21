@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
+import com.jacky8399.balancedvillagertrades.fields.ItemStackField.ItemStackWrapper;
 import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.NamespacedKey;
@@ -14,18 +15,14 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, LuaProxy<ItemMeta> {
-    private static final Field<ItemMeta, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class,
-            itemMeta -> itemMeta instanceof EnchantmentStorageMeta storageMeta ?
-                    storageMeta.getStoredEnchants().size() :
-                    itemMeta.getEnchants().size());
+public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemStackWrapper>, LuaProxy<ItemStackWrapper> {
+    private static final Field<ItemStackWrapper, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, wrapper -> getEnchants(wrapper).size());
     @Override
-    public @Nullable Field<ItemMeta, ?> getField(String fieldName) {
+    public @Nullable Field<ItemStackWrapper, ?> getField(String fieldName) {
         if ("size".equals(fieldName))
             return SIZE_FIELD;
 
@@ -42,8 +39,8 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
         return Objects.requireNonNull(Enchantment.getByKey(key), "Unknown enchantment " + string);
     }
 
-    private static Field<ItemMeta, Integer> getEnchantmentField(Enchantment enchantment) {
-        return Field.field(Integer.class,
+    private static Field<ItemStackWrapper, Integer> getEnchantmentField(Enchantment enchantment) {
+        return ItemStackField.metaField(Integer.class,
                 itemMeta -> itemMeta instanceof EnchantmentStorageMeta storageMeta ?
                         storageMeta.getStoredEnchantLevel(enchantment) :
                         itemMeta.getEnchantLevel(enchantment),
@@ -63,23 +60,26 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
     }
 
     @Override
-    public @Nullable Collection<String> getFields(@Nullable ItemMeta itemMeta) {
-        if (itemMeta == null) {
+    public @Nullable Collection<String> getFields(@Nullable ItemStackWrapper wrapper) {
+        if (wrapper == null) {
             return List.of("size");
         }
         List<String> fields = new ArrayList<>();
+        for (Enchantment enchantment : getEnchants(wrapper).keySet()) {
+            fields.add(enchantment.getKey().toString());
+        }
+        // list enchantment fields first
         fields.add("size");
-        itemMeta.getEnchants().keySet().forEach(enchantment -> fields.add(enchantment.getKey().toString()));
         return fields;
     }
 
     @Override
-    public ItemMeta get(ItemMeta itemMeta) {
+    public ItemStackWrapper get(ItemStackWrapper itemMeta) {
         return itemMeta;
     }
 
     @Override
-    public void set(ItemMeta itemMeta, ItemMeta value) {
+    public void set(ItemStackWrapper itemMeta, ItemStackWrapper value) {
 
     }
 
@@ -89,8 +89,8 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
     }
 
     @Override
-    public Class<ItemMeta> getFieldClass() {
-        return ItemMeta.class;
+    public Class<ItemStackWrapper> getFieldClass() {
+        return ItemStackWrapper.class;
     }
 
     private static final Pattern CONTAINS_REGEX = Pattern.compile("^contains\\s+(\\S+)$");
@@ -99,13 +99,13 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
     private static final Pattern CONFLICTS_WITH_REGEX = Pattern.compile("^conflicts with\\s+(\\S+)$");
 
     @Override
-    public @NotNull BiPredicate<TradeWrapper, ItemMeta> parsePredicate(@NotNull String input) {
+    public @NotNull BiPredicate<TradeWrapper, ItemStackWrapper> parsePredicate(@NotNull String input) {
         Matcher matcher;
         if ((matcher = CONTAINS_REGEX.matcher(input)).matches()) {
             Enchantment enchantment = readEnchantment(matcher.group(1));
-            return (trade, meta) -> meta instanceof EnchantmentStorageMeta storageMeta ?
+            return (trade, wrapper) -> wrapper.meta() instanceof EnchantmentStorageMeta storageMeta ?
                     storageMeta.hasStoredEnchant(enchantment) :
-                    meta.hasEnchant(enchantment);
+                    wrapper.meta().hasEnchant(enchantment);
         } else if ((matcher = CATEGORY_MATCHER_REGEX.matcher(input)).matches()) {
             MatchMode matchMode = MatchMode.valueOf(matcher.group(1).toUpperCase(Locale.ENGLISH));
             boolean negate = matcher.group(2) != null;
@@ -119,32 +119,21 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
             }
         } else if ((matcher = CONFLICTS_WITH_REGEX.matcher(input)).matches()) {
             Enchantment enchantment = readEnchantment(matcher.group(1));
-            return (trade, meta) -> meta instanceof EnchantmentStorageMeta storageMeta ?
+            return (trade, wrapper) -> wrapper.meta() instanceof EnchantmentStorageMeta storageMeta ?
                     storageMeta.hasConflictingStoredEnchant(enchantment) :
-                    meta.hasConflictingEnchant(enchantment);
+                    wrapper.meta().hasConflictingEnchant(enchantment);
         }
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public @Nullable LuaValue getProperty(ItemMeta instance, LuaValue key) {
-        String fieldName = key.checkjstring();
-        Supplier<Map<Enchantment, Integer>> enchantsGetter = instance instanceof EnchantmentStorageMeta storageMeta ?
-                storageMeta::getStoredEnchants :
-                instance::getEnchants;
-        return switch (fieldName) {
-            case "entries", "entrySet" -> ScriptUtils.getIteratorFor(enchantsGetter.get().entrySet(),
+    public @Nullable LuaValue getProperty(ItemStackWrapper instance, LuaValue key) {
+        if (key.isstring() && "entries".equals(key.checkjstring())) {
+            Map<Enchantment, Integer> enchants = getEnchants(instance);
+            return ScriptUtils.iterator(enchants.entrySet(),
                     entry -> LuaValue.varargsOf(LuaValue.valueOf(entry.getKey().getKey().toString()), LuaValue.valueOf(entry.getValue()), LuaValue.NIL));
-            case "keys", "keySet" -> ScriptUtils.getIteratorFor(enchantsGetter.get().keySet(),
-                    ench -> LuaValue.valueOf(ench.getKey().toString()));
-            case "values" -> ScriptUtils.getIteratorFor(enchantsGetter.get().values(), LuaValue::valueOf);
-            default -> null;
-        };
-    }
-
-    @Override
-    public boolean setProperty(ItemMeta instance, LuaValue key, LuaValue value) {
-        return false;
+        }
+        return null;
     }
 
     private enum MatchMode {
@@ -155,11 +144,9 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
             this.matchFunction = matchFunction;
         }
     }
-    private BiPredicate<TradeWrapper, ItemMeta> checkMatch(Predicate<Enchantment> predicate, MatchMode matchMode, boolean negate) {
-        return (trade, meta) -> {
-            var enchantmentMap = meta instanceof EnchantmentStorageMeta storageMeta ?
-                    storageMeta.getStoredEnchants() :
-                    meta.getEnchants();
+    private BiPredicate<TradeWrapper, ItemStackWrapper> checkMatch(Predicate<Enchantment> predicate, MatchMode matchMode, boolean negate) {
+        return (trade, wrapper) -> {
+            var enchantmentMap = getEnchants(wrapper);
             var stream = enchantmentMap.keySet().stream();
 
             return matchMode.matchFunction.test(stream, negate ? predicate.negate() : predicate); // XOR
@@ -168,7 +155,17 @@ public class EnchantmentsField implements ContainerField<ItemMeta, ItemMeta>, Lu
 
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, ItemMeta, ItemMeta> parseTransformer(@Nullable String input) {
+    public @NotNull BiFunction<TradeWrapper, ItemStackWrapper, ItemStackWrapper> parseTransformer(@Nullable String input) {
         return ContainerField.super.parseTransformer(input);
+    }
+
+    private static Map<Enchantment, Integer> getEnchants(ItemStackWrapper wrapper) {
+        return getEnchants(wrapper.meta());
+    }
+
+    private static Map<Enchantment, Integer> getEnchants(ItemMeta meta) {
+        return meta instanceof EnchantmentStorageMeta storageMeta ?
+                storageMeta.getStoredEnchants() :
+                meta.getEnchants();
     }
 }

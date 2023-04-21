@@ -24,6 +24,10 @@ repositories {
     maven { url = 'https://jitpack.io'}
 }
 
+configurations {
+    testImplementation.extendsFrom compileOnly
+}
+
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
     compileOnly 'org.jetbrains:annotations:23.0.0'

@@ -7,5 +7,9 @@ public interface LuaProxy<T> {
     @Nullable
     LuaValue getProperty(T instance, LuaValue key);
 
-    boolean setProperty(T instance, LuaValue key, LuaValue value);
+    // TODO fix signature
+    @Deprecated
+    default boolean setProperty(T instance, LuaValue key, LuaValue value) {
+        return false;
+    }
 }

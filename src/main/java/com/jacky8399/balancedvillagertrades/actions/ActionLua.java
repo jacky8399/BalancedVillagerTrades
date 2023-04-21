@@ -28,8 +28,7 @@ public class ActionLua extends Action {
                 globals.set("trade", ScriptUtils.wrapField(wrapper, Fields.ROOT_FIELD));
             }));
         } catch (LuaError ex) {
-            BalancedVillagerTrades.LOGGER.severe("An error occurred while running script in recipe " + recipeName + ":");
-            ex.printStackTrace();
+            BalancedVillagerTrades.LOGGER.severe("An error occurred while running script in recipe " + recipeName + ":\n" + ex);
         }
     }
 
