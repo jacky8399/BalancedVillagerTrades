@@ -1,6 +1,6 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
-import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -48,20 +48,13 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
         super(Villager.class, TradeWrapper::getVillager, null, FIELDS);
     }
 
-    private static boolean warnOldVillagerSyntax = true;
-
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
     @Override
     public @NotNull BiPredicate<TradeWrapper, Villager> parsePredicate(@NotNull String input) throws IllegalArgumentException {
         Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(input);
         if (matcher.matches()) {
-            if (warnOldVillagerSyntax) {
-                warnOldVillagerSyntax = false;
-                BalancedVillagerTrades.LOGGER.warning("Using 'villager: profession/type ...' to target villagers is obsolete.");
-                BalancedVillagerTrades.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Fields#villager-properties " +
-                        "for a better way to target specific villagers.");
-            }
+            Config.addWarning("Using 'villager: profession/type ...' to target villagers is deprecated.");
             String fieldName = matcher.group(1);
             Field<Villager, String> field = getFieldUnsafe(fieldName);
             var predicate = field.parsePredicate(matcher.group(2) + matcher.group(3));

@@ -1,6 +1,6 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
-import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.*;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.Nullable;
@@ -45,22 +45,19 @@ public class FieldPredicate extends TradePredicate {
                     try {
                         field = Fields.findField(base, fieldName, true);
                     } catch (IllegalArgumentException e) {
-                        BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping.");
+                        Config.addError(e.getMessage() + "! Skipping.");
                         return Stream.empty();
                     }
                     fieldName = base != null ? baseName + "." + fieldName : fieldName; // for better error messages
                     if (value instanceof Map) {
                         if (!field.isComplex()) { // complex fields only
-                            BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " does not have inner fields! Skipping.");
+                            Config.addError("Field " + fieldName + " does not have inner fields! Skipping.");
                             return Stream.empty();
                         }
                         Map<String, Object> innerMap = (Map<String, Object>) value;
                         if (field.child instanceof ItemStackField && innerMap.size() == 1 && innerMap.containsKey("matches")) {
                             // fallback to old ItemPredicates
-                            if (warnOldItemSyntax) {
-                                warnOldItemSyntax = false;
-                                BalancedVillagerTrades.LOGGER.warning("Falling back to old item predicate for " + fieldName + ".");
-                            }
+                            Config.addWarning("Falling back to old item predicate for field\"" + fieldName + "\".");
                             TradePredicate predicate = TradePredicate.CONSTRUCTORS.get(fieldName).apply(innerMap);
                             return Stream.of(new FieldPredicate(predicate.toString(),
                                     IDENTITY_FIELD, (tradeWrapper, obj) -> predicate.test(tradeWrapper)));
@@ -75,7 +72,7 @@ public class FieldPredicate extends TradePredicate {
                                 predicate = (tradeWrapper, obj) -> obj == null;
                             return Stream.of(new FieldPredicate(fieldName + ": " + value, field, predicate));
                         } catch (IllegalArgumentException e) {
-                            BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping");
+                            Config.addError(e.getMessage() + "! Skipping");
                             e.printStackTrace();
                             return Stream.empty();
                         }
@@ -83,7 +80,6 @@ public class FieldPredicate extends TradePredicate {
                 });
     }
 
-    private static boolean warnOldItemSyntax = true;
 
     public static BiPredicate<TradeWrapper, ?> getPredicate(FieldProxy<TradeWrapper, ?, ?> field, String input) {
         String trimmed = input.trim();

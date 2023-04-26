@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades.actions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
@@ -33,7 +34,7 @@ public class ActionEcho extends Action {
                     try {
                         return Maps.immutableEntry(fieldName, Fields.findField(null, fieldName, true));
                     } catch (Exception e) {
-                        BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping.");
+                        Config.addError(e.getMessage() + "! Skipping.");
                         return null;
                     }
                 })

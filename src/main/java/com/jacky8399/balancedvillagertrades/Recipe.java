@@ -26,13 +26,13 @@ public class Recipe {
         desc = String.valueOf(map.get("desc"));
 
         Object enabled = map.get("enabled");
-        if (enabled instanceof Boolean) {
-            this.enabled = (Boolean) enabled;
+        if (enabled instanceof Boolean bool) {
+            this.enabled = bool;
         }
 
         Object whenMap = map.get("when");
         if (whenMap == null) {
-            BalancedVillagerTrades.LOGGER.warning("Recipe " + name + " without condition? This will run on every villager trade!");
+            Config.addWarning("Recipe doesn't have a condition, and will run on every trade.");
             predicate = new AndPredicate(Collections.emptyList());
         } else {
             if (!(whenMap instanceof Map)) {

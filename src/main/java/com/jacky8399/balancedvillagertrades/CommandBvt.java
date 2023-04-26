@@ -39,6 +39,7 @@ public class CommandBvt implements TabExecutor {
                 BalancedVillagerTrades.INSTANCE.reloadConfig();
                 sender.sendMessage(ChatColor.GREEN + "Configuration and recipes reloaded!");
                 sender.sendMessage(ChatColor.GREEN + "Loaded " + Recipe.RECIPES.size() + " recipes.");
+                Config.sendReport(sender, false);
             }
             case "recipe" -> {
                 if (args.length != 3) {
@@ -169,6 +170,12 @@ public class CommandBvt implements TabExecutor {
                     sender.sendMessage(RED + "[Script Error] " + error);
                 }
             }
+            case "warnings" -> {
+                Config.sendReport(sender, true);
+            }
+            default -> {
+                sender.sendMessage(RED + "Usage: /bvt ...");
+            }
         }
         return true;
     }
@@ -181,7 +188,7 @@ public class CommandBvt implements TabExecutor {
 
     private Iterable<String> tabComplete(@NotNull CommandSender sender, String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "recipes", "recipe", "script", "runscriptfile", "getfield");
+            return List.of("reload", "recipes", "recipe", "script", "runscriptfile", "getfield", "warnings");
         } else if (args[0].equalsIgnoreCase("recipe")) {
             if (args.length == 2) {
                 return Recipe.RECIPES.keySet();

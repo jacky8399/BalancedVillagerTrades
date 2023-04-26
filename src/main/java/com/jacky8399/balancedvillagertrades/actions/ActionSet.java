@@ -1,6 +1,7 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ContainerField;
 import com.jacky8399.balancedvillagertrades.fields.Field;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
@@ -62,20 +63,20 @@ public class ActionSet extends Action {
                     try {
                         field = Fields.findField(base, fieldName, true);
                     } catch (IllegalArgumentException e) {
-                        BalancedVillagerTrades.LOGGER.warning(e.getMessage() + "! Skipping.");
+                        Config.addError(e.getMessage() + "! Skipping.");
                         return Stream.empty();
                     }
                     fieldName = base != null ? baseName + "." + fieldName : fieldName; // for better error messages
                     if (value instanceof Map) {
                         if (!field.isComplex()) { // complex fields only
-                            BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " does not have inner fields! Skipping.");
+                            Config.addError("Field " + fieldName + " does not have inner fields! Skipping.");
                             return Stream.empty();
                         }
                         Map<String, Object> innerMap = (Map<String, Object>) value;
                         return parse(field, fieldName, innerMap);
                     } else {
                         if (field.isReadOnly()) {
-                            BalancedVillagerTrades.LOGGER.warning("Field " + fieldName + " is read-only! Assigning new values to it will have no effect.");
+                            Config.addError("Field " + fieldName + " is read-only! Assigning new values to it will have no effect.");
                         }
                         BiFunction<TradeWrapper, ?, ?> transformer = getTransformer(field, value != null ? value.toString() : null);
                         return Stream.of(new ActionSet(fieldName + " to " + value, field, transformer));
