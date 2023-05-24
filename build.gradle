@@ -30,7 +30,7 @@ configurations {
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
-    compileOnly 'org.jetbrains:annotations:23.0.0'
+    compileOnly 'org.jetbrains:annotations:24.0.1'
     implementation 'org.bstats:bstats-bukkit:3.0.0'
     implementation('com.github.MightyPirates.OC-LuaJ:luaj-jse:new-SNAPSHOT') {
         exclude group: 'org.apache.bcel' // LuaJC is not used

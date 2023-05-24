@@ -21,10 +21,14 @@ public class Config {
         Logger logger = BalancedVillagerTrades.LOGGER;
 
         nerfNegativeReputationOnKilled = config.getBoolean("nerfs.negative-reputation-on-killed.enabled");
+        if (nerfNegativeReputationOnKilled && BalancedVillagerTrades.REPUTATION == null) {
+            logger.warning("Negative reputation on killed is not supported on Spigot.");
+        }
+
         nerfNegativeReputationOnKilledRadius = config.getDouble("nerfs.negative-reputation-on-killed.radius");
         nerfNegativeReputationOnKilledReputationPenalty = clamp(config.getInt("nerfs.negative-reputation-on-killed.reputation-penalty"), 1, 100);
 
-//        luaAllowIO = config.getBoolean("lua.allow-io");
+        luaAllowIO = config.getBoolean("lua.allow-io");
         if (luaAllowIO) {
             logger.warning("allow-io enabled. Lua scripts may read files.");
         }
@@ -132,6 +136,7 @@ public class Config {
     }
 
     public static boolean luaAllowIO;
+    public static boolean luaDebug;
     public static int luaMaxInstructions;
 
     public static boolean nerfNegativeReputationOnKilled;

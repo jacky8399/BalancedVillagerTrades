@@ -9,6 +9,7 @@ import org.luaj.vm2.LuaError;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.logging.Logger;
 
 public class ActionLua extends Action {
     private final String recipeName;
@@ -24,11 +25,17 @@ public class ActionLua extends Action {
     @Override
     public void accept(TradeWrapper wrapper) {
         try {
-            ScriptUtils.runScriptInSandbox(script, chunkName, ScriptUtils.createSandbox(globals -> {
-                globals.set("trade", ScriptUtils.wrapField(wrapper, Fields.ROOT_FIELD));
-            }));
+            ScriptUtils.runScriptInSandbox(script, chunkName,
+                    ScriptUtils.createSandbox(globals -> {
+                        globals.set("trade", ScriptUtils.wrapField(wrapper, Fields.ROOT_FIELD));
+                        globals.set("__chunkName", chunkName);
+                    }));
         } catch (LuaError ex) {
-            BalancedVillagerTrades.LOGGER.severe("An error occurred while running script in recipe " + recipeName + ":\n" + ex);
+            Logger logger = BalancedVillagerTrades.LOGGER;
+            logger.severe("""
+                    An error occurred while running Lua script %s in recipe %s
+                    Context: %s
+                    Exception: %s""".formatted(chunkName, recipeName, wrapper, ex));
         }
     }
 
@@ -48,5 +55,10 @@ public class ActionLua extends Action {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Run Lua script " + chunkName;
     }
 }

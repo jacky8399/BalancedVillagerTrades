@@ -45,4 +45,9 @@ public abstract class Action implements Consumer<TradeWrapper> {
             throw new IllegalArgumentException("Empty action");
         return actions;
     }
+
+    @Override
+    public String toString() {
+        return "Unknown action " + getClass().getSimpleName();
+    }
 }

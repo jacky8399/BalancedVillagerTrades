@@ -66,7 +66,7 @@ public class ScriptUtils {
             };
             globals.load(new JseIoLib());
         }
-
+        globals.set("__chunkName", "?");
         injectUtils(globals);
 
         return globals;
@@ -99,9 +99,7 @@ public class ScriptUtils {
 
         LuaValue chunk = scriptCompiler.load(scriptReader, chunkName, globals);
         LuaThread thread = new LuaThread(globals, chunk);
-        boolean loadDebug = Config.luaMaxInstructions > 0 ||
-                FieldWrapper.warnNextDeprecation || FieldWrapper.warnNextDeprecationEnchantment;
-        if (loadDebug)
+        if (Config.luaMaxInstructions > 0)
             globals.load(new DebugLib());
         if (Config.luaMaxInstructions > 0) {
             var sethookFunction = globals.get("debug").get("sethook");
@@ -152,7 +150,7 @@ public class ScriptUtils {
         };
     }
 
-    static class FieldWrapper<T> extends LuaTable {
+    static class FieldWrapper<T> extends ReadOnlyLuaTable {
         private final T trade;
         private final FieldProxy<T, ?, ?> field;
         FieldWrapper(T trade, FieldProxy<T, ?, ?> field) {
@@ -232,7 +230,7 @@ public class ScriptUtils {
                                 .formatted(value.typename(), clazz.getSimpleName()));
                     }
                 } catch (LuaError e) {
-                    throw new LuaError("Failed to set %s to %s: ".formatted(value.tojstring(), child.fieldName) +
+                    error("Failed to set %s to %s: ".formatted(value.tojstring(), child.fieldName) +
                             e.getMessage());
                 }
             }
@@ -247,15 +245,19 @@ public class ScriptUtils {
                 LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for enchantments. " +
                         "Please use enchantments.entries() to get a key-value pair of enchantments.");
                 LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#enchantments for more information.");
-                if (runningScript != null && runningScript.globals.debuglib != null)
+                if (runningScript.globals.debuglib != null)
                     LOGGER.warning("Offending script: " + runningScript.globals.debuglib.traceback(1));
+                else
+                    LOGGER.warning("Offending script: " + runningScript.globals.get("__chunkName").tojstring());
                 warnNextDeprecationEnchantment = false;
             } else if (warnNextDeprecation) {
                 LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for container fields. " +
                         "Please use field.children() to get a key set of properties.");
                 LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#container-fields for more information.");
-                if (runningScript != null && runningScript.globals.debuglib != null)
+                if (runningScript.globals.debuglib != null)
                     LOGGER.warning("Offending script: " + runningScript.globals.debuglib.traceback(1));
+                else
+                    LOGGER.warning("Offending script: " + runningScript.globals.get("__chunkName").tojstring());
                 warnNextDeprecation = false;
             }
 
@@ -287,10 +289,9 @@ public class ScriptUtils {
         }
 
         @Override
-        public LuaValue setmetatable(LuaValue metatable) { return error("table is read-only"); }
-        public void set(int key, LuaValue value) { error("table is read-only"); }
-        public void rawset(int key, LuaValue value) { error("table is read-only"); }
-        public LuaValue remove(int pos) { return error("table is read-only"); }
+        public void set(int key, LuaValue value) {
+            set(LuaValue.valueOf(key), value);
+        }
 
         @Override
         public LuaValue tostring() {
@@ -299,6 +300,11 @@ public class ScriptUtils {
     }
 
     static class ReadOnlyLuaTable extends LuaTable {
+
+        public ReadOnlyLuaTable() {
+
+        }
+
         public ReadOnlyLuaTable(LuaValue table) {
             presize(table.length(), 0);
             for (Varargs n = table.next(LuaValue.NIL); !n.arg1().isnil(); n = table

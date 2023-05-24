@@ -42,18 +42,19 @@ public class CommandBvt implements TabExecutor {
                 Config.sendReport(sender, false);
             }
             case "recipe" -> {
+                String recipeName = args[1];
                 if (args.length != 3) {
                     sender.sendMessage(RED + "Usage: /bvt recipe <recipe> <info/enable/disable>");
                     return true;
                 }
-                Recipe recipe = Recipe.RECIPES.get(args[1]);
+                Recipe recipe = Recipe.RECIPES.get(recipeName);
                 if (recipe == null) {
-                    sender.sendMessage(RED + "Can't find recipe by the name " + args[1]);
+                    sender.sendMessage(RED + "Can't find recipe by the name " + recipeName);
                     return true;
                 }
                 switch (args[2].toLowerCase(Locale.ROOT)) {
                     case "info" -> {
-                        sender.sendMessage("" + ChatColor.GOLD + ChatColor.BOLD + args[1]);
+                        sender.sendMessage("" + ChatColor.GOLD + ChatColor.BOLD + recipeName);
                         sender.sendMessage(ChatColor.GREEN + "Status: " + (recipe.enabled ? ChatColor.GREEN + "enabled" : RED + "disabled"));
                         sender.sendMessage(ChatColor.GREEN + "Description: " + ChatColor.YELLOW + recipe.desc);
                         sender.sendMessage(ChatColor.GREEN + "Conditions:");
@@ -67,7 +68,7 @@ public class CommandBvt implements TabExecutor {
                         boolean enable = args[2].equalsIgnoreCase("enable");
                         recipe.enabled = enable;
                         sender.sendMessage((enable ? ChatColor.GREEN + "Enabled" : RED + "Disabled") +
-                                ChatColor.YELLOW + " " + args[1] + " temporarily");
+                                ChatColor.YELLOW + " " + recipeName + " temporarily");
                         sender.sendMessage(ChatColor.YELLOW + "Note: to disable this recipe permanently, comment it out or set enabled: false in recipes.yml");
                     }
                     default -> sender.sendMessage(RED + "Usage: /bvt recipe <recipe> <info/enable/disable>");
@@ -148,16 +149,20 @@ public class CommandBvt implements TabExecutor {
                     String fileName = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
                     File file = new File(BalancedVillagerTrades.INSTANCE.getDataFolder(), fileName);
                     try (var reader = new FileReader(file)) {
-                        var sandbox = ScriptUtils.createSandbox(globals ->
-                                globals.set("trade", ScriptUtils.wrapField(trade, Fields.ROOT_FIELD))
-                        );
+                        var sandbox = ScriptUtils.createSandbox(globals -> {
+                            globals.set("trade", ScriptUtils.wrapField(trade, Fields.ROOT_FIELD));
+                            globals.set("__chunkName", "inline script from command");
+                        });
                         var baos = new ByteArrayOutputStream();
                         sandbox.STDOUT = new PrintStream(baos);
-                        ScriptUtils.runScriptInSandbox(reader, fileName, sandbox);
+                        var retVal = ScriptUtils.runScriptInSandbox(reader, fileName, sandbox);
                         sandbox.STDOUT.flush();
                         var output = baos.toString();
                         if (!output.isEmpty()) {
                             sender.sendMessage(ChatColor.YELLOW + "[STDOUT] " + output);
+                        }
+                        if (!retVal.isnil()) {
+                            sender.sendMessage(ChatColor.YELLOW + "[Return Value] " + retVal.tojstring());
                         }
                     }
                 } catch (NumberFormatException | IndexOutOfBoundsException ex) {
@@ -170,12 +175,8 @@ public class CommandBvt implements TabExecutor {
                     sender.sendMessage(RED + "[Script Error] " + error);
                 }
             }
-            case "warnings" -> {
-                Config.sendReport(sender, true);
-            }
-            default -> {
-                sender.sendMessage(RED + "Usage: /bvt ...");
-            }
+            case "warnings" -> Config.sendReport(sender, true);
+            default -> sender.sendMessage(RED + "Usage: /bvt ...");
         }
         return true;
     }
@@ -256,7 +257,9 @@ public class CommandBvt implements TabExecutor {
     }
 
     private static List<String> completeVillager(CommandSender sender) {
-        List<String> completions = new ArrayList<>(Arrays.asList("@e", "@e[sort=nearest,limit=1]"));
+        List<String> completions = new ArrayList<>();
+        completions.add("@e");
+        completions.add("@e[type=villager,sort=nearest,limit=1]");
         // see if player is looking at a villager
         if (sender instanceof Player player) {
             RayTraceResult rayTrace = player.getWorld().rayTraceEntities(
@@ -271,7 +274,7 @@ public class CommandBvt implements TabExecutor {
     }
 
     // Only list requested fields
-    // For example, given input "villager", returns "villager", "villager." (to indicate that it has children fields),
+    // For example, given input "villager", returns "villager." (to indicate that it has children fields),
     // and other sibling fields.
     // Given input "villager.", returns all children fields under "children"
     private static List<String> completeFieldNames(String input, TradeWrapper context) {
@@ -295,8 +298,9 @@ public class CommandBvt implements TabExecutor {
                 String childPath = parentPath + child;
                 if (FieldProxy.isComplex(parent.getField(child))) {
                     fields.add(childPath + ".");
+                } else {
+                    fields.add(childPath);
                 }
-                fields.add(childPath);
             }
         }
         return fields;

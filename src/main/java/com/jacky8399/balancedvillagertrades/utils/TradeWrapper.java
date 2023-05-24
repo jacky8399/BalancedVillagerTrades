@@ -47,6 +47,10 @@ public class TradeWrapper {
 
     @Override
     public String toString() {
-        return "TradeWrapper{villager=" + villager + ",index=" + index + ",recipe=" + recipe + "}";
+        String recipeInfo = recipe.getIngredients() + " -> " + recipe.getResult();
+        String villager = getVillager().getCustomName();
+        return "Trade [%s] (index=%d) from villager %s (%s)"
+                .formatted(recipeInfo, getIndex(),
+                        villager != null ? villager : "", getVillager().getUniqueId());
     }
 }
