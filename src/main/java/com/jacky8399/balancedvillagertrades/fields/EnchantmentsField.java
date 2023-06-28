@@ -1,8 +1,11 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ItemStackField.ItemStackWrapper;
 import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -19,15 +22,30 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemStackWrapper>, LuaProxy<ItemStackWrapper> {
-    private static final Field<ItemStackWrapper, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, wrapper -> getEnchants(wrapper).size());
+public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemMeta>, LuaProxy<ItemMeta> {
+
+    @Nullable
+    Boolean unsafe;
+    public EnchantmentsField(@Nullable Boolean unsafe) {
+        this.unsafe = unsafe;
+    }
+
+    private static final Field<ItemMeta, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, meta -> getEnchants(meta).size());
     @Override
-    public @Nullable Field<ItemStackWrapper, ?> getField(String fieldName) {
+    public @Nullable Field<ItemMeta, ?> getField(String fieldName) {
         if ("size".equals(fieldName))
             return SIZE_FIELD;
 
+        if (unsafe == null) {
+            Config.addWarning("item.enchantments is deprecated. " +
+                    "Please use item.safe_enchantments (does not bypass enchantment restrictions) and " +
+                    "item.unsafe_enchantments (bypasses all enchantment restrictions) to access and modify enchantments.");
+            // backwards compatibility: enchantments is unsafe by default
+            unsafe = true;
+        }
+
         try {
-            return getEnchantmentField(readEnchantment(fieldName));
+            return getEnchantmentField(readEnchantment(fieldName), unsafe);
         } catch (NullPointerException ignored) {
             return null;
         }
@@ -39,8 +57,8 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
         return Objects.requireNonNull(Enchantment.getByKey(key), "Unknown enchantment " + string);
     }
 
-    private static Field<ItemStackWrapper, Integer> getEnchantmentField(Enchantment enchantment) {
-        return ItemStackField.metaField(Integer.class,
+    private static Field<ItemMeta, Integer> getEnchantmentField(Enchantment enchantment, boolean unsafe) {
+        return new SimpleField<>(Integer.class,
                 itemMeta -> itemMeta instanceof EnchantmentStorageMeta storageMeta ?
                         storageMeta.getStoredEnchantLevel(enchantment) :
                         itemMeta.getEnchantLevel(enchantment),
@@ -49,12 +67,12 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
                         if (newLevel <= 0)
                             storageMeta.removeStoredEnchant(enchantment);
                         else
-                            storageMeta.addStoredEnchant(enchantment, newLevel, true);
+                            storageMeta.addStoredEnchant(enchantment, newLevel, unsafe);
                     } else {
                         if (newLevel <= 0)
                             itemMeta.removeEnchant(enchantment);
                         else
-                            itemMeta.addEnchant(enchantment, newLevel, true);
+                            itemMeta.addEnchant(enchantment, newLevel, unsafe);
                     }
                 });
     }
@@ -74,13 +92,24 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
     }
 
     @Override
-    public ItemStackWrapper get(ItemStackWrapper itemMeta) {
-        return itemMeta;
+    public ItemMeta get(ItemStackWrapper wrapper) {
+        return wrapper.meta();
     }
 
     @Override
-    public void set(ItemStackWrapper itemMeta, ItemStackWrapper value) {
-
+    public void set(ItemStackWrapper wrapper, ItemMeta newValue) {
+        // copy enchantments
+        ItemMeta value = wrapper.meta();
+        var currentEnchants = getEnchants(wrapper);
+        var newEnchants = getEnchants(newValue);
+        var enchantsToRemove = new LinkedHashSet<>(currentEnchants.keySet());
+        enchantsToRemove.removeAll(newEnchants.keySet());
+        for (var entry : newEnchants.entrySet()) {
+            value.addEnchant(entry.getKey(), entry.getValue(), true);
+        }
+        for (var toRemove : enchantsToRemove) {
+            value.removeEnchant(toRemove);
+        }
     }
 
     @Override
@@ -89,8 +118,8 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
     }
 
     @Override
-    public Class<ItemStackWrapper> getFieldClass() {
-        return ItemStackWrapper.class;
+    public Class<ItemMeta> getFieldClass() {
+        return ItemMeta.class;
     }
 
     private static final Pattern CONTAINS_REGEX = Pattern.compile("^contains\\s+(\\S+)$");
@@ -99,13 +128,13 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
     private static final Pattern CONFLICTS_WITH_REGEX = Pattern.compile("^conflicts with\\s+(\\S+)$");
 
     @Override
-    public @NotNull BiPredicate<TradeWrapper, ItemStackWrapper> parsePredicate(@NotNull String input) {
+    public @NotNull BiPredicate<TradeWrapper, ItemMeta> parsePredicate(@NotNull String input) {
         Matcher matcher;
         if ((matcher = CONTAINS_REGEX.matcher(input)).matches()) {
             Enchantment enchantment = readEnchantment(matcher.group(1));
-            return (trade, wrapper) -> wrapper.meta() instanceof EnchantmentStorageMeta storageMeta ?
+            return (trade, meta) -> meta instanceof EnchantmentStorageMeta storageMeta ?
                     storageMeta.hasStoredEnchant(enchantment) :
-                    wrapper.meta().hasEnchant(enchantment);
+                    meta.hasEnchant(enchantment);
         } else if ((matcher = CATEGORY_MATCHER_REGEX.matcher(input)).matches()) {
             MatchMode matchMode = MatchMode.valueOf(matcher.group(1).toUpperCase(Locale.ENGLISH));
             boolean negate = matcher.group(2) != null;
@@ -119,15 +148,15 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
             }
         } else if ((matcher = CONFLICTS_WITH_REGEX.matcher(input)).matches()) {
             Enchantment enchantment = readEnchantment(matcher.group(1));
-            return (trade, wrapper) -> wrapper.meta() instanceof EnchantmentStorageMeta storageMeta ?
+            return (trade, meta) -> meta instanceof EnchantmentStorageMeta storageMeta ?
                     storageMeta.hasConflictingStoredEnchant(enchantment) :
-                    wrapper.meta().hasConflictingEnchant(enchantment);
+                    meta.hasConflictingEnchant(enchantment);
         }
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public @Nullable LuaValue getProperty(ItemStackWrapper instance, LuaValue key) {
+    public @Nullable LuaValue getProperty(ItemMeta instance, LuaValue key) {
         if (key.isstring() && "entries".equals(key.checkjstring())) {
             Map<Enchantment, Integer> enchants = getEnchants(instance);
             return ScriptUtils.iterator(enchants.entrySet(),
@@ -144,9 +173,9 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
             this.matchFunction = matchFunction;
         }
     }
-    private BiPredicate<TradeWrapper, ItemStackWrapper> checkMatch(Predicate<Enchantment> predicate, MatchMode matchMode, boolean negate) {
-        return (trade, wrapper) -> {
-            var enchantmentMap = getEnchants(wrapper);
+    private BiPredicate<TradeWrapper, ItemMeta> checkMatch(Predicate<Enchantment> predicate, MatchMode matchMode, boolean negate) {
+        return (trade, meta) -> {
+            var enchantmentMap = getEnchants(meta);
             var stream = enchantmentMap.keySet().stream();
 
             return matchMode.matchFunction.test(stream, negate ? predicate.negate() : predicate); // XOR
@@ -155,7 +184,7 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemS
 
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, ItemStackWrapper, ItemStackWrapper> parseTransformer(@Nullable String input) {
+    public @NotNull BiFunction<TradeWrapper, ItemMeta, ItemMeta> parseTransformer(@Nullable String input) {
         return ContainerField.super.parseTransformer(input);
     }
 

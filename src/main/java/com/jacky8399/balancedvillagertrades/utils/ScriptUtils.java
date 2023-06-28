@@ -209,8 +209,11 @@ public class ScriptUtils {
                     return;
             }
 
-            String fieldName = key.checkjstring().replace('_', '-');
+            String fieldName = key.checkjstring();
             var child = (FieldProxy) field.getFieldWrapped(fieldName);
+            if (child == null && fieldName.indexOf('_') > -1) // access fields with hyphens
+                child = field.getFieldWrapped(fieldName.replace('_', '-'));
+
             if (child != null) {
                 Class<?> clazz = child.getFieldClass();
                 try {

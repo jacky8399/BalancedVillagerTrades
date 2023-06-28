@@ -1,6 +1,7 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
 import com.google.common.collect.ImmutableMap;
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
@@ -70,7 +71,9 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
                         Objects.requireNonNull(key, "resource location must not be null");
                         is.stack.setType(Objects.requireNonNull(Registry.MATERIAL.get(key), "Invalid item " + key));
                     }))
-            .put("enchantments", new EnchantmentsField())
+            .put("enchantments", new EnchantmentsField(null))
+            .put("safe_enchantments", new EnchantmentsField(false))
+            .put("unsafe_enchantments", new EnchantmentsField(true))
             .put("damage", metaField(Integer.class,
                     meta -> meta instanceof Damageable damageable ? damageable.getDamage() : 0,
                     (meta, damage) -> {

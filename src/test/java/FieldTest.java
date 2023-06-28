@@ -135,7 +135,7 @@ public class FieldTest {
     );
     @Test
     public void testEnchantmentField() {
-        var enchantmentField = new EnchantmentsField();
+        var enchantmentField = new EnchantmentsField(null);
         for (var test : enchantmentPredicateTests) {
             // create respective ItemMeta instances
 
@@ -147,9 +147,9 @@ public class FieldTest {
             for (String input : test.inputs()) {
                 var predicate = enchantmentField.parsePredicate(input);
 
-                assertEquals(test.expected(), predicate.test(null, wrapper), () ->
+                assertEquals(test.expected(), predicate.test(null, meta), () ->
                         "Test \"" + input + "\" failed for enchantments: " + test.enchantments);
-                assertEquals(test.expected(), predicate.test(null, storageWrapper), () ->
+                assertEquals(test.expected(), predicate.test(null, meta), () ->
                         "Test \"" + input + "\" failed for stored enchantments: " + test.enchantments);
             }
         }

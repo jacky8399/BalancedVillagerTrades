@@ -86,11 +86,13 @@ public class Config {
     }
 
     public static void addWarning(String warning, Object... args) {
+        if (currentRecipe == null) return;
         if (args.length != 0)
             warning = warning.formatted(args);
         reports.computeIfAbsent(currentRecipe, ignored -> new Report()).warnings.add(warning);
     }
     public static void addError(String error, Object... args) {
+        if (currentRecipe == null) return;
         if (args.length != 0)
             error = error.formatted(args);
         reports.computeIfAbsent(currentRecipe, ignored -> new Report()).errors.add(error);
