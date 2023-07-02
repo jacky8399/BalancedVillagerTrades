@@ -1,13 +1,13 @@
 package com.jacky8399.balancedvillagertrades;
 
 import com.jacky8399.balancedvillagertrades.actions.Action;
+import com.jacky8399.balancedvillagertrades.actions.ActionLua;
 import com.jacky8399.balancedvillagertrades.fields.Field;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
-import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -19,9 +19,11 @@ import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.LuaError;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.bukkit.ChatColor.*;
 
@@ -98,6 +100,129 @@ public class CommandBvt implements TabExecutor {
         }
     }
 
+    private static final String EXPECTED_SCRIPT_TOKENS = "Expected villager/index/new/script/file/recipe, got ";
+    private void doScript(@NotNull CommandSender sender, String label, String[] args) {
+        int index = 1;
+        String lastToken = null;
+        Villager villager = null;
+        int recipeIndex = -1;
+        boolean isNew = false;
+        String chunkName = null;
+        String chunk = null;
+
+        try {
+            loop:
+            while (true) {
+                String token = args[index++];
+                if (lastToken == null) {
+                    switch (token) {
+                        case "villager", "index" -> lastToken = token;
+                        case "new" -> isNew = true;
+                        case "script" -> {
+                            // consume all input immediately
+                            String rest = String.join(" ", Arrays.copyOfRange(args, index, args.length));
+                            if (rest.isBlank())
+                                throw new IllegalArgumentException("Expected inline script after 'script', got nothing");
+
+                            chunkName = "inline script";
+                            chunk = rest;
+                            break loop;
+                        }
+                        case "file" -> {
+                            String rest = String.join(" ", Arrays.copyOfRange(args, index, args.length));
+                            if (rest.isBlank())
+                                throw new IllegalArgumentException("Expect file after 'file', got nothing");
+
+                            Path base = BalancedVillagerTrades.INSTANCE.getDataFolder().toPath().toAbsolutePath();
+                            try {
+                                Path dest = base.resolve(rest).toAbsolutePath();
+                                if (!dest.startsWith(base)) throw new IllegalArgumentException("Invalid path");
+
+                                chunkName = rest;
+                                chunk = Files.readString(dest);
+                                break loop;
+                            } catch (Exception ex) {
+                                if (ex instanceof IllegalArgumentException iae)
+                                    throw iae;
+                                throw new IllegalArgumentException(ex.getMessage());
+                            }
+                        }
+                        case "recipe" -> {
+                            String recipeName = args[index];
+                            Recipe recipe = Recipe.RECIPES.get(recipeName);
+                            if (recipe == null)
+                                throw new IllegalArgumentException("Recipe " + recipeName + " not found");
+
+                            for (Action action : recipe.actions) {
+                                if (action instanceof ActionLua actionLua) {
+                                    chunk = actionLua.script;
+                                    chunkName = actionLua.chunkName;
+                                    break;
+                                }
+                            }
+
+                            if (chunk == null)
+                                throw new IllegalArgumentException("Recipe " + recipeName + " does not have a do.lua block");
+                            break loop;
+                        }
+                        default -> throw new IllegalArgumentException(EXPECTED_SCRIPT_TOKENS + token);
+                    }
+                } else {
+                    if (lastToken.equals("villager")) {
+                        villager = selectVillager(sender, token);
+                    } else { // if (lastToken.equals("index") {
+                        recipeIndex = Integer.parseInt(token);
+                    }
+                    lastToken = null;
+                }
+            }
+        } catch (ArrayIndexOutOfBoundsException ex) {
+            String message;
+            if (lastToken == null) {
+                message = EXPECTED_SCRIPT_TOKENS + "nothing";
+            } else {
+                message = switch (lastToken) {
+                    case "villager" -> "Expected entity selector after 'villager', got nothing";
+                    case "index" -> "Expected index to recipe after 'index', got nothing";
+                    default -> EXPECTED_SCRIPT_TOKENS + "nothing\nDid you mean /" + label + " script script " + lastToken + "?";
+                };
+            }
+            message += "\nUsage: /" + label + " script [villager <villager>] [index <index>] [new] script|file|recipe <script...|file...|recipe>";
+            sender.sendMessage(RED + message);
+            return;
+        } catch (IllegalArgumentException ex) {
+            sender.sendMessage(RED + ex.getMessage());
+            return;
+        }
+
+        if (chunk == null) return;
+
+        var sandbox = ScriptUtils.createSandbox();
+        sandbox.set("__chunkName" , chunkName);
+        if (villager != null && recipeIndex != -1) {
+           var trade = new TradeWrapper(villager, villager.getRecipe(recipeIndex), recipeIndex, isNew);
+           sandbox.set("trade", ScriptUtils.wrapField(trade, Fields.ROOT_FIELD));
+        }
+
+
+        var baos = new ByteArrayOutputStream();
+        sandbox.STDOUT = new PrintStream(baos);
+        try {
+            var retVal = ScriptUtils.runScriptInSandbox(chunk, chunkName, sandbox);
+            sandbox.STDOUT.flush();
+            var output = baos.toString();
+            if (!output.isEmpty()) {
+                sender.sendMessage(YELLOW + "[STDOUT] " + output);
+            }
+            if (!retVal.isnil()) {
+                sender.sendMessage(YELLOW + "[Return Value] " + retVal.tojstring());
+            }
+        } catch (LuaError error) {
+            sender.sendMessage(RED + "[Script Error] " + error.getMessage());
+        }
+
+    }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
@@ -152,67 +277,8 @@ public class CommandBvt implements TabExecutor {
 
             case "getfield", "setfield", "testfield" -> doField(sender, args);
 
-            case "script" -> {
-                if (args.length == 1) {
-                    sender.sendMessage(RED + "Usage: /bvt script <script>");
-                    return true;
-                }
-                String script = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-                try {
-                    var globals = ScriptUtils.createSandbox();
-                    // try to redirect stdout to player chat
-                    var baos = new ByteArrayOutputStream();
-                    globals.STDOUT = new PrintStream(baos);
-                    ScriptUtils.runScriptInSandbox(script, "[script]", globals);
-                    globals.STDOUT.flush();
-                    var output = baos.toString();
-                    if (!output.isEmpty()) {
-                        sender.sendMessage(YELLOW + "[STDOUT] " + output);
-                    }
-                } catch (LuaError ex) {
-                    sender.sendMessage(RED + "[Script Error] " + ex);
-                    ex.printStackTrace();
-                }
-            }
-            case "runscriptfile" -> {
-                if (args.length < 4) {
-                    sender.sendMessage(RED + "Usage: /bvt runscriptfile <villager> <recipeId> <scriptFile>");
-                    return true;
-                }
-                try {
-                    Villager villager = selectVillager(sender, args[1]);
-                    int recipeId = Integer.parseInt(args[2]);
-                    TradeWrapper trade = new TradeWrapper(villager, villager.getRecipe(recipeId), recipeId, false);
+            case "script" -> doScript(sender, label, args);
 
-                    String fileName = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
-                    File file = new File(BalancedVillagerTrades.INSTANCE.getDataFolder(), fileName);
-                    try (var reader = new FileReader(file)) {
-                        var sandbox = ScriptUtils.createSandbox(globals -> {
-                            globals.set("trade", ScriptUtils.wrapField(trade, Fields.ROOT_FIELD));
-                            globals.set("__chunkName", "inline script from command");
-                        });
-                        var baos = new ByteArrayOutputStream();
-                        sandbox.STDOUT = new PrintStream(baos);
-                        var retVal = ScriptUtils.runScriptInSandbox(reader, fileName, sandbox);
-                        sandbox.STDOUT.flush();
-                        var output = baos.toString();
-                        if (!output.isEmpty()) {
-                            sender.sendMessage(YELLOW + "[STDOUT] " + output);
-                        }
-                        if (!retVal.isnil()) {
-                            sender.sendMessage(YELLOW + "[Return Value] " + retVal.tojstring());
-                        }
-                    }
-                } catch (NumberFormatException | IndexOutOfBoundsException ex) {
-                    sender.sendMessage(RED + "Invalid recipe ID " + args[2]);
-                } catch (IllegalArgumentException ex) {
-                    sender.sendMessage(RED + ex.getMessage());
-                } catch (IOException ex) {
-                    sender.sendMessage(RED + ex.toString());
-                } catch (LuaError error) {
-                    sender.sendMessage(RED + "[Script Error] " + error);
-                }
-            }
             case "warnings" -> Config.sendReport(sender, true);
             default -> sender.sendMessage(RED + "Usage: /bvt ...");
         }
@@ -222,21 +288,29 @@ public class CommandBvt implements TabExecutor {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         String input = args[args.length - 1];
-        return filterInput(input, tabComplete(sender, args));
+        Collection<String> collection = tabComplete(sender, args);
+        var list = new ArrayList<String>(collection.size());
+        for (String string : collection) {
+            if (string.regionMatches(true, 0, input, 0, input.length())) {
+                list.add(string);
+            }
+        }
+        return list;
     }
 
     private static final Set<String> FIELD_COMMANDS = Set.of("getfield", "setfield", "testfield");
-    private Iterable<String> tabComplete(@NotNull CommandSender sender, String[] args) {
+    private static final List<String> SCRIPT_OPTIONS = List.of("villager", "index", "recipe", "script", "file");
+    private Collection<String> tabComplete(@NotNull CommandSender sender, String[] args) {
         if (args.length == 1) {
-            return List.of("reload", "recipes", "recipe", "script", "runscriptfile", "getfield", "warnings");
+            return List.of("reload", "recipes", "recipe", "script", "getfield", "setfield", "testfield", "warnings");
         } else if (args[0].equalsIgnoreCase("recipe")) {
             if (args.length == 2) {
                 return Recipe.RECIPES.keySet();
             } else if (args.length == 3) {
                 return List.of("info", "enable", "disable");
             }
-        } else if (FIELD_COMMANDS.contains(args[0].toLowerCase(Locale.ENGLISH)) || args[0].equalsIgnoreCase("runscriptfile")) {
-            boolean getField = !args[0].equalsIgnoreCase("runscriptfile");
+        } else if (FIELD_COMMANDS.contains(args[0].toLowerCase(Locale.ENGLISH))) {
+            boolean getField = true;
             if (args.length == 2) {
                 return completeVillager(sender);
             } else {
@@ -252,30 +326,41 @@ public class CommandBvt implements TabExecutor {
                             list.add(Integer.toString(i));
                         }
                         return list;
-                    } else if (getField && args.length == 4) {
+                    } else if (args.length == 4) {
                         int recipeId = Integer.parseInt(args[2]);
                         var tempWrapper = new TradeWrapper(villager, recipeId != -1 ? villager.getRecipe(recipeId) : null, recipeId, false);
                         return completeFieldNames(args[args.length - 1], tempWrapper);
                     }
                 } catch (IllegalArgumentException | IndexOutOfBoundsException ignored) {
-                    if (getField && args.length == 3) {
+                    if (args.length == 3) {
                         return completeFieldNames(args[args.length - 1], null);
                     }
                 }
             }
             return List.of();
+        } else if (args[0].equals("script")) {
+            int lastIndex = args.length - 2;
+            if (lastIndex == 0)
+                return SCRIPT_OPTIONS;
+            String lastToken = args[lastIndex];
+            return switch (lastToken) {
+                case "villager" -> completeVillager(sender);
+                case "index" -> {
+                    // find villager
+                    for (int i = 1; i < args.length - 2; i++) {
+                        if (args[i].equals("villager")) {
+                            Villager villager = selectVillager(sender, args[i + 1]);
+                            yield IntStream.range(0, villager.getRecipeCount()).mapToObj(Integer::toString).toList();
+                        }
+                    }
+                    yield List.of(); // not found
+                }
+                case "recipe" -> Recipe.RECIPES.keySet();
+                case "file", "script" -> List.of();
+                default -> SCRIPT_OPTIONS;
+            };
         }
         return List.of();
-    }
-
-    private static List<String> filterInput(String input, Iterable<String> collection) {
-        var list = new ArrayList<String>();
-        for (String string : collection) {
-            if (string.regionMatches(true, 0, input, 0, input.length())) {
-                list.add(string);
-            }
-        }
-        return list;
     }
 
     private static Villager selectVillager(CommandSender sender, String selector) throws IllegalArgumentException {

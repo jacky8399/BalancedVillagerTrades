@@ -1,6 +1,6 @@
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.Config;
-import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.Globals;

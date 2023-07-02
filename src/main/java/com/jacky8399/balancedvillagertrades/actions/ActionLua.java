@@ -2,7 +2,7 @@ package com.jacky8399.balancedvillagertrades.actions;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
-import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.luaj.vm2.LuaError;
 
@@ -13,8 +13,8 @@ import java.util.logging.Logger;
 
 public class ActionLua extends Action {
     private final String recipeName;
-    private final String chunkName;
-    private final String script;
+    public final String chunkName;
+    public final String script;
     private ActionLua(String recipeName, String chunkName, String script) {
         this.recipeName = recipeName;
         this.chunkName = chunkName;

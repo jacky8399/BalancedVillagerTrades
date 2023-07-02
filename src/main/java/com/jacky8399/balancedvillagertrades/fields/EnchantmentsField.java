@@ -1,11 +1,9 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
-import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ItemStackField.ItemStackWrapper;
-import com.jacky8399.balancedvillagertrades.utils.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
