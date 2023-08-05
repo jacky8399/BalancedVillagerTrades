@@ -24,15 +24,8 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
     }
 
     private static final InventoryField INVENTORY_FIELD = new InventoryField();
-    private static final Field<Villager, World> WORLD_FIELD = ContainerField.withFields(World.class, Villager::getWorld, null, Map.of(
-            "name", Field.readOnlyField(String.class, World::getName),
-            "environment", Field.readOnlyField(String.class, world -> world.getEnvironment().name()),
-            "time", Field.readOnlyField(Integer.class, world -> (int) world.getTime()),
-            "full-time", Field.readOnlyField(Integer.class, world -> (int) world.getFullTime()),
-            "is-day-time", Field.readOnlyField(Boolean.class, World::isDayTime),
-            "weather", Field.readOnlyField(String.class,
-                    world -> world.isThundering() ? "thunder" : world.hasStorm() ? "rain" : "clear"))
-    );
+
+    public static final Field<Villager, World> WORLD_FIELD = new WorldField();
 
     private static final Map<String, Field<Villager, ?>> FIELDS = Map.of(
             "type", field(String.class, villager -> villager.getVillagerType().name()),
@@ -44,9 +37,11 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
             "world", WORLD_FIELD
     );
 
-    public VillagerField() {
+    private VillagerField() {
         super(Villager.class, TradeWrapper::getVillager, null, FIELDS);
     }
+
+    public static VillagerField INSTANCE = new VillagerField();
 
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 

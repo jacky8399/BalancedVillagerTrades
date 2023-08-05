@@ -5,7 +5,7 @@ import com.jacky8399.balancedvillagertrades.actions.ActionLua;
 import com.jacky8399.balancedvillagertrades.fields.Field;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
-import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -197,18 +197,18 @@ public class CommandBvt implements TabExecutor {
 
         if (chunk == null) return;
 
-        var sandbox = ScriptUtils.createSandbox();
+        var sandbox = ScriptRunner.createSandbox();
         sandbox.set("__chunkName" , chunkName);
         if (villager != null && recipeIndex != -1) {
            var trade = new TradeWrapper(villager, villager.getRecipe(recipeIndex), recipeIndex, isNew);
-           sandbox.set("trade", ScriptUtils.wrapField(trade, Fields.ROOT_FIELD));
+           sandbox.set("trade", ScriptRunner.wrapField(trade, Fields.ROOT_FIELD));
         }
 
 
         var baos = new ByteArrayOutputStream();
         sandbox.STDOUT = new PrintStream(baos);
         try {
-            var retVal = ScriptUtils.runScriptInSandbox(chunk, chunkName, sandbox);
+            var retVal = ScriptRunner.runScriptInSandbox(chunk, chunkName, sandbox);
             sandbox.STDOUT.flush();
             var output = baos.toString();
             if (!output.isEmpty()) {

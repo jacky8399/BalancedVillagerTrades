@@ -1,6 +1,6 @@
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.Config;
-import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.Globals;
@@ -26,7 +26,7 @@ public class LuaTest {
     public static LuaValue run(String script, Consumer<Globals> globalsConsumer) {
         var baos = new ByteArrayOutputStream();
         var printStream = new PrintStream(baos, true);
-        var returnValue = ScriptUtils.runScriptInSandbox(script, ".", ScriptUtils.createSandbox(globals -> {
+        var returnValue = ScriptRunner.runScriptInSandbox(script, ".", ScriptRunner.createSandbox(globals -> {
             globals.STDOUT = printStream;
             globalsConsumer.accept(globals);
         }));
@@ -71,7 +71,7 @@ public class LuaTest {
                         end
                         return str
                         """,
-                globals -> globals.set("iterate", ScriptUtils.iterator(List.of("a", "b", "c"), LuaValue::valueOf))
+                globals -> globals.set("iterate", ScriptRunner.iterator(List.of("a", "b", "c"), LuaValue::valueOf))
         ).checkjstring());
 
         assertEquals("a1b2c3", run("""
@@ -81,7 +81,7 @@ public class LuaTest {
                         end
                         return str
                         """,
-                globals -> globals.set("iterate", ScriptUtils.iterator(
+                globals -> globals.set("iterate", ScriptRunner.iterator(
                         List.of(Map.entry("a", 1), Map.entry("b", 2), Map.entry("c", 3)),
                         entry -> LuaValue.varargsOf(LuaValue.valueOf(entry.getKey()), LuaValue.valueOf(entry.getValue()), LuaValue.NIL)
                 ))

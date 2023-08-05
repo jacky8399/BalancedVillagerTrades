@@ -2,7 +2,7 @@ package com.jacky8399.balancedvillagertrades.actions;
 
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.fields.Fields;
-import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.luaj.vm2.LuaError;
 
@@ -25,9 +25,9 @@ public class ActionLua extends Action {
     @Override
     public void accept(TradeWrapper wrapper) {
         try {
-            ScriptUtils.runScriptInSandbox(script, chunkName,
-                    ScriptUtils.createSandbox(globals -> {
-                        globals.set("trade", ScriptUtils.wrapField(wrapper, Fields.ROOT_FIELD));
+            ScriptRunner.runScriptInSandbox(script, chunkName,
+                    ScriptRunner.createSandbox(globals -> {
+                        globals.set("trade", ScriptRunner.wrapField(wrapper, Fields.ROOT_FIELD));
                         globals.set("__chunkName", chunkName);
                     }));
         } catch (LuaError ex) {
@@ -47,7 +47,12 @@ public class ActionLua extends Action {
         File dataFolder = BalancedVillagerTrades.INSTANCE.getDataFolder();
         File scriptFile = new File(dataFolder, path);
         if (!scriptFile.exists())
-            throw new IllegalStateException(path + " doesn't exist!");
+            throw new IllegalArgumentException(path + " doesn't exist!");
+        // check extension
+        String fileName = scriptFile.getName();
+        String extension = fileName.substring(fileName.lastIndexOf('.') + 1);
+        if (!"lua".equalsIgnoreCase(extension))
+            throw new IllegalArgumentException(fileName + " has invalid extension (" + extension + ")");
 
         try {
             String script = Files.readString(scriptFile.toPath());

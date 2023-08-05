@@ -2,6 +2,7 @@ package com.jacky8399.balancedvillagertrades.fields;
 
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +39,8 @@ public class Fields {
                     trade -> trade.getRecipe().getIngredients().get(1),
                     (trade, stack) -> setIngredient(1, trade, stack))),
             entry("result", ItemStackField.create(trade -> trade.getRecipe().getResult(), Fields::setResult)),
-            entry("villager", new VillagerField()),
+            entry("villager", VillagerField.INSTANCE),
+            entry("world", VillagerField.INSTANCE.andThen(VillagerField.WORLD_FIELD)),
             entry("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex)),
             entry("is-new", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))
     );

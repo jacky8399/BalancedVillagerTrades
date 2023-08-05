@@ -4,8 +4,6 @@ import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ContainerField;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
-import com.jacky8399.balancedvillagertrades.utils.EnchantmentUtils;
-import com.jacky8399.balancedvillagertrades.utils.lua.FieldWrapper;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.*;
@@ -20,28 +18,10 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 
 // some code adapted from https://github.com/luaj/luaj/blob/master/examples/jse/SampleSandboxed.java
-public class ScriptUtils {
+public class ScriptRunner {
     static final Logger LOGGER = BalancedVillagerTrades.LOGGER;
     private static Globals scriptCompiler;
 
-    private static void injectUtils(Globals globals) {
-        var enchantments = new LuaTable();
-        enchantments.set("is_treasure", new OneArgFunction() {
-            @Override
-            public LuaValue call(LuaValue arg) {
-                return LuaValue.valueOf(EnchantmentUtils.isTreasure(arg.checkjstring()));
-            }
-        });
-        enchantments.set("get_cost", new LibFunction() {
-            @Override
-            public Varargs invoke(Varargs args) {
-                var range = EnchantmentUtils.getEnchantmentPrice(args.arg(1).checkint(), args.arg(2).checkboolean());
-                return LuaValue.varargsOf(LuaValue.valueOf(range.from()), LuaValue.valueOf(range.to()));
-            }
-        });
-
-        globals.set("enchantments", new ReadOnlyLuaTable(enchantments));
-    }
 
     public static Globals createSandbox() {
         var globals = new Globals();
@@ -51,6 +31,7 @@ public class ScriptUtils {
         globals.load(new TableLib());
         globals.load(new StringLib());
         globals.load(new JseMathLib());
+        globals.load(new LuaOsLib());
         if (!Config.luaAllowIO) {
             globals.finder = filename -> null;
         } else {
@@ -66,7 +47,7 @@ public class ScriptUtils {
             globals.load(new JseIoLib());
         }
         globals.set("__chunkName", "?");
-        injectUtils(globals);
+        ScriptUtilities.inject(globals);
 
         return globals;
     }

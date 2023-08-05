@@ -1,7 +1,7 @@
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.fields.*;
-import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -162,7 +162,7 @@ public class FieldTest {
         );
         ItemMeta meta = DangerousMocks.mockEnchants(enchants);
         var wrapper = new ItemStackField.ItemStackWrapper(null, meta);
-        var stackField = ScriptUtils.wrapField(wrapper, new ItemStackField<>(Function.identity(), null));
+        var stackField = ScriptRunner.wrapField(wrapper, new ItemStackField<>(Function.identity(), null));
         var script = """
                 str = ""
                 for k, v in item.enchantments.entries() do

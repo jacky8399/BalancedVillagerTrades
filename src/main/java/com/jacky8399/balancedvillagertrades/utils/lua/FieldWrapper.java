@@ -8,7 +8,7 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 
-public class FieldWrapper<T> extends ScriptUtils.ReadOnlyLuaTable {
+public class FieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
     private final T trade;
     private final FieldProxy<T, ?, ?> field;
 
@@ -22,7 +22,7 @@ public class FieldWrapper<T> extends ScriptUtils.ReadOnlyLuaTable {
         if (key.isstring() && "children".equals(key.tojstring())) {
             var fields = field.getFields(trade);
             if (fields != null) {
-                return ScriptUtils.iterator(fields, LuaValue::valueOf);
+                return ScriptRunner.iterator(fields, LuaValue::valueOf);
             } else {
                 return error("Cannot iterate children of non-container field " + field);
             }
@@ -105,22 +105,22 @@ public class FieldWrapper<T> extends ScriptUtils.ReadOnlyLuaTable {
     @Override
     public Varargs next(LuaValue key) {
         if (warnNextDeprecationEnchantment && field.child instanceof EnchantmentsField) {
-            ScriptUtils.LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for enchantments. " +
+            ScriptRunner.LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for enchantments. " +
                     "Please use enchantments.entries() to get a key-value pair of enchantments.");
-            ScriptUtils.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#enchantments for more information.");
-            if (ScriptUtils.runningScript.globals.debuglib != null)
-                ScriptUtils.LOGGER.warning("Offending script: " + ScriptUtils.runningScript.globals.debuglib.traceback(1));
+            ScriptRunner.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#enchantments for more information.");
+            if (ScriptRunner.runningScript.globals.debuglib != null)
+                ScriptRunner.LOGGER.warning("Offending script: " + ScriptRunner.runningScript.globals.debuglib.traceback(1));
             else
-                ScriptUtils.LOGGER.warning("Offending script: " + ScriptUtils.runningScript.globals.get("__chunkName").tojstring());
+                ScriptRunner.LOGGER.warning("Offending script: " + ScriptRunner.runningScript.globals.get("__chunkName").tojstring());
             warnNextDeprecationEnchantment = false;
         } else if (warnNextDeprecation) {
-            ScriptUtils.LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for container fields. " +
+            ScriptRunner.LOGGER.warning("Using the built-in Lua functions next()/pairs() is deprecated for container fields. " +
                     "Please use field.children() to get a key set of properties.");
-            ScriptUtils.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#container-fields for more information.");
-            if (ScriptUtils.runningScript.globals.debuglib != null)
-                ScriptUtils.LOGGER.warning("Offending script: " + ScriptUtils.runningScript.globals.debuglib.traceback(1));
+            ScriptRunner.LOGGER.warning("See https://github.com/jacky8399/BalancedVillagerTrades/wiki/Lua-next-pairs#container-fields for more information.");
+            if (ScriptRunner.runningScript.globals.debuglib != null)
+                ScriptRunner.LOGGER.warning("Offending script: " + ScriptRunner.runningScript.globals.debuglib.traceback(1));
             else
-                ScriptUtils.LOGGER.warning("Offending script: " + ScriptUtils.runningScript.globals.get("__chunkName").tojstring());
+                ScriptRunner.LOGGER.warning("Offending script: " + ScriptRunner.runningScript.globals.get("__chunkName").tojstring());
             warnNextDeprecation = false;
         }
 

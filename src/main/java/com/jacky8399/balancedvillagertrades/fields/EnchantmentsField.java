@@ -2,7 +2,7 @@ package com.jacky8399.balancedvillagertrades.fields;
 
 import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.fields.ItemStackField.ItemStackWrapper;
-import com.jacky8399.balancedvillagertrades.utils.lua.ScriptUtils;
+import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -157,7 +157,7 @@ public class EnchantmentsField implements ContainerField<ItemStackWrapper, ItemM
     public @Nullable LuaValue getProperty(ItemMeta instance, LuaValue key) {
         if (key.isstring() && "entries".equals(key.checkjstring())) {
             Map<Enchantment, Integer> enchants = getEnchants(instance);
-            return ScriptUtils.iterator(enchants.entrySet(),
+            return ScriptRunner.iterator(enchants.entrySet(),
                     entry -> LuaValue.varargsOf(LuaValue.valueOf(entry.getKey().getKey().toString()), LuaValue.valueOf(entry.getValue()), LuaValue.NIL));
         }
         return null;
