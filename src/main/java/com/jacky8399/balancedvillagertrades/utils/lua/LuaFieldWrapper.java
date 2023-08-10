@@ -1,6 +1,6 @@
 package com.jacky8399.balancedvillagertrades.utils.lua;
 
-import com.jacky8399.balancedvillagertrades.fields.EnchantmentsField;
+import com.jacky8399.balancedvillagertrades.fields.item.EnchantmentsField;
 import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
 import com.jacky8399.balancedvillagertrades.fields.LuaProxy;
 import org.bukkit.NamespacedKey;
@@ -8,11 +8,11 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 
-public class FieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
+public class LuaFieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
     private final T trade;
     private final FieldProxy<T, ?, ?> field;
 
-    public FieldWrapper(T trade, FieldProxy<T, ?, ?> field) {
+    public LuaFieldWrapper(T trade, FieldProxy<T, ?, ?> field) {
         this.trade = trade;
         this.field = field;
     }
@@ -26,10 +26,9 @@ public class FieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
             } else {
                 return error("Cannot iterate children of non-container field " + field);
             }
-        } else if (field.child instanceof LuaProxy<?> luaProxy) {
+        } else if (field.child instanceof LuaProxy luaProxy) {
             Object instance = field.get(trade);
-            @SuppressWarnings({"rawtypes", "unchecked"})
-            var intercepted = ((LuaProxy) luaProxy).getProperty(instance, key);
+            var intercepted = luaProxy.getProperty(instance, key);
             if (intercepted != null)
                 return intercepted;
         }
@@ -40,12 +39,20 @@ public class FieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
             child = field.getFieldWrapped(fieldName.replace('_', '-'));
 
         if (child == null) {
-            return LuaValue.NIL;
+            return error("Field " + fieldName + " does not exist on " + field.fieldName);
         }
 
         Object value = child.get(trade);
+
+        // TODO tomfoolery to attach the value to a LuaFieldWrapper if is complex
+//        if (child.child instanceof LuaProxy proxy) {
+//            LuaValue intercepted = proxy.getLuaValue(value);
+//            if (intercepted != null)
+//                return intercepted;
+//        }
+
         if (value != null && child.isComplex()) {
-            return new FieldWrapper<>(trade, child);
+            return new LuaFieldWrapper<>(trade, child);
         } else {
             if (value instanceof Integer num) {
                 return LuaValue.valueOf(num);
@@ -62,39 +69,46 @@ public class FieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public void set(LuaValue key, LuaValue value) {
-        if (field.child instanceof LuaProxy<?> proxy) {
-            Object instance = field.get(trade);
-            if (((LuaProxy) proxy).setProperty(instance, key, value))
+        if (field.child instanceof LuaProxy proxy) {
+            if (proxy.setProperty(field, trade, key, value))
                 return;
         }
 
         String fieldName = key.checkjstring();
+
         var child = (FieldProxy) field.getFieldWrapped(fieldName);
         if (child == null && fieldName.indexOf('_') > -1) // access fields with hyphens
             child = field.getFieldWrapped(fieldName.replace('_', '-'));
 
-        if (child != null) {
-            Class<?> clazz = child.getFieldClass();
-            try {
-                if (clazz == String.class) {
-                    child.set(trade, value.checkjstring());
-                } else if (clazz == Integer.class) {
-                    child.set(trade, value.checkint());
-                } else if (clazz == Boolean.class) {
-                    child.set(trade, value.checkboolean());
-                } else if (clazz == NamespacedKey.class) {
-                    NamespacedKey namespacedKey = NamespacedKey.fromString(value.checkjstring());
-                    if (namespacedKey == null)
-                        argerror("NamespacedKey");
-                    child.set(trade, namespacedKey);
-                } else {
-                    error("Don't know how to assign Lua type %s to %s"
-                            .formatted(value.typename(), clazz.getSimpleName()));
-                }
-            } catch (LuaError e) {
-                error("Failed to set %s to %s: ".formatted(value.tojstring(), child.fieldName) +
-                        e.getMessage());
+        if (child == null) {
+            error("Field " + fieldName + " does not exist on " + field.fieldName);
+        }
+
+        if (child.child instanceof LuaProxy proxy) {
+            if (proxy.setLuaValue(child, trade, value))
+                return;
+        }
+
+        Class<?> clazz = child.getFieldClass();
+        try {
+            if (clazz == String.class) {
+                child.set(trade, value.checkjstring());
+            } else if (clazz == Integer.class) {
+                child.set(trade, value.checkint());
+            } else if (clazz == Boolean.class) {
+                child.set(trade, value.checkboolean());
+            } else if (clazz == NamespacedKey.class) {
+                NamespacedKey namespacedKey = NamespacedKey.fromString(value.checkjstring());
+                if (namespacedKey == null)
+                    argerror("NamespacedKey");
+                child.set(trade, namespacedKey);
+            } else {
+                error("Don't know how to assign Lua type %s to %s"
+                        .formatted(value.typename(), clazz.getSimpleName()));
             }
+        } catch (LuaError e) {
+            error("Failed to set %s to %s: ".formatted(value.tojstring(), child.fieldName) +
+                    e.getMessage());
         }
     }
 

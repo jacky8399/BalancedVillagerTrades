@@ -1,7 +1,11 @@
-package com.jacky8399.balancedvillagertrades.fields;
+package com.jacky8399.balancedvillagertrades.fields.item;
 
 import com.jacky8399.balancedvillagertrades.Config;
-import com.jacky8399.balancedvillagertrades.fields.ItemStackField.ItemStackWrapper;
+import com.jacky8399.balancedvillagertrades.fields.ContainerField;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.LuaProxy;
+import com.jacky8399.balancedvillagertrades.fields.SimpleField;
+import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField.ItemStackWrapper;
 import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.NamespacedKey;

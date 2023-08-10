@@ -25,21 +25,6 @@ public class SimpleContainerField<TOwner, TField> extends SimpleField<TOwner, TF
     }
 
     @Override
-    public void set(TOwner tOwner, TField value) {
-        if (setter != null) setter.accept(tOwner, value);
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return setter == null;
-    }
-
-    @Override
-    public Class<TField> getFieldClass() {
-        return clazz;
-    }
-
-    @Override
     public @Nullable Field<TField, ?> getField(String fieldName) {
         return fields.get(fieldName);
     }

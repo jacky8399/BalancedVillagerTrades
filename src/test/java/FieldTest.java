@@ -1,6 +1,8 @@
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.fields.*;
+import com.jacky8399.balancedvillagertrades.fields.item.EnchantmentsField;
+import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField;
 import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;

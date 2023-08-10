@@ -107,7 +107,7 @@ public class ScriptRunner {
     }
 
     public static <T> LuaValue wrapField(T trade, ContainerField<T, ?> field) {
-        return new FieldWrapper<T>(trade, field instanceof FieldProxy proxy ? proxy : FieldProxy.emptyAccessor(field));
+        return new LuaFieldWrapper<T>(trade, field instanceof FieldProxy proxy ? proxy : FieldProxy.emptyAccessor(field));
     }
 
     public static <T> LuaFunction iterator(Collection<? extends T> collection, Function<T, Varargs> deconstructor) {

@@ -1,12 +1,12 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
-import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import org.bukkit.ChatColor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 

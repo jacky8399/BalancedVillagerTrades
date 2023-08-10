@@ -5,11 +5,23 @@ import org.luaj.vm2.LuaValue;
 
 public interface LuaProxy<T> {
     @Nullable
-    LuaValue getProperty(T instance, LuaValue key);
+    default LuaValue getProperty(T instance, LuaValue key) {
+        return null;
+    }
 
-    // TODO fix signature
     @Deprecated
-    default boolean setProperty(T instance, LuaValue key, LuaValue value) {
+    default <TOwner> boolean setProperty(Field<TOwner, T> field, TOwner parent, LuaValue key, LuaValue value) {
         return false;
     }
+
+    // methods to intercept conversion to/from Lua types
+    @Nullable
+    default LuaValue getLuaValue(T instance) {
+        return null;
+    }
+
+    default <TOwner> boolean setLuaValue(Field<TOwner, T> field, TOwner parent, LuaValue value) {
+        return false;
+    }
+
 }

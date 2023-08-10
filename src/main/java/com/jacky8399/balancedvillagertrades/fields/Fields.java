@@ -1,8 +1,8 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
 import com.google.common.collect.Maps;
+import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
-import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;

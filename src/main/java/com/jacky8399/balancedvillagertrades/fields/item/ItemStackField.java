@@ -1,7 +1,10 @@
-package com.jacky8399.balancedvillagertrades.fields;
+package com.jacky8399.balancedvillagertrades.fields.item;
 
 import com.google.common.collect.ImmutableMap;
-import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
+import com.jacky8399.balancedvillagertrades.fields.ContainerField;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.NamespacedKeyField;
+import com.jacky8399.balancedvillagertrades.fields.SimpleField;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
@@ -50,11 +53,6 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
                 } : null);
     }
 
-    static <T> Field<ItemStackWrapper, T> stackField(Class<T> clazz, Function<ItemStack, T> getter, @Nullable BiConsumer<ItemStack, T> setter) {
-        return new SimpleField<>(clazz,
-                getter.compose(ItemStackWrapper::stack),
-                setter != null ? (wrapper, t) -> setter.accept(wrapper.stack, t) : null);
-    }
     static <T> Field<ItemStackWrapper, T> metaField(Class<T> clazz, Function<ItemMeta, T> getter, @Nullable BiConsumer<ItemMeta, T> setter) {
         return new SimpleField<>(clazz,
                 getter.compose(ItemStackWrapper::meta),
@@ -62,9 +60,9 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
     }
 
     public static final ImmutableMap<String, Field<ItemStackWrapper, ?>> ITEM_STACK_FIELDS = ImmutableMap.<String, Field<ItemStackWrapper, ?>>builder()
-            .put("amount", stackField(Integer.class,
-                    ItemStack::getAmount,
-                    ItemStack::setAmount))
+            .put("amount", new SimpleField<>(Integer.class,
+                    stack -> stack.stack.getAmount(),
+                    (wrapper, amount) -> wrapper.stack.setAmount(amount)))
             .put("type", new NamespacedKeyField<>(
                     is -> is.stack.getType().getKey(),
                     (is, key) -> {
@@ -85,6 +83,7 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
                     ItemMeta::setDisplayName))
             .put("unbreakable", metaField(Boolean.class,
                     ItemMeta::isUnbreakable, ItemMeta::setUnbreakable))
+            .put("lore", new ItemLoreField())
             .build();
 
     @Override
