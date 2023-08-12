@@ -44,12 +44,11 @@ public class LuaFieldWrapper<T> extends ScriptRunner.ReadOnlyLuaTable {
 
         Object value = child.get(trade);
 
-        // TODO tomfoolery to attach the value to a LuaFieldWrapper if is complex
-//        if (child.child instanceof LuaProxy proxy) {
-//            LuaValue intercepted = proxy.getLuaValue(value);
-//            if (intercepted != null)
-//                return intercepted;
-//        }
+        if (child.child instanceof LuaProxy proxy) {
+            LuaValue intercepted = proxy.getLuaValue(value);
+            if (intercepted != null)
+                return intercepted;
+        }
 
         if (value != null && child.isComplex()) {
             return new LuaFieldWrapper<>(trade, child);

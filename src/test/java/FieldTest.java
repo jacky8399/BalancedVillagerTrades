@@ -1,7 +1,11 @@
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
-import com.jacky8399.balancedvillagertrades.fields.*;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.Fields;
+import com.jacky8399.balancedvillagertrades.fields.LuaProxy;
+import com.jacky8399.balancedvillagertrades.fields.NamespacedKeyField;
 import com.jacky8399.balancedvillagertrades.fields.item.EnchantmentsField;
+import com.jacky8399.balancedvillagertrades.fields.item.ItemLoreField;
 import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField;
 import com.jacky8399.balancedvillagertrades.utils.lua.ScriptRunner;
 import org.bukkit.NamespacedKey;
@@ -12,7 +16,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import utils.DangerousMocks;
 import utils.FakeEnchantments;
+import utils.FieldUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -20,8 +26,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FieldTest {
     @BeforeAll
@@ -39,6 +44,7 @@ public class FieldTest {
             "result.enchantments.size", Integer.class,
             "villager.world.environment", String.class
     );
+
     @Test
     public void testFields() {
         fields.forEach((fieldName, clazz) -> {
@@ -48,12 +54,13 @@ public class FieldTest {
     }
 
     /**
-     * @param field Field to parse predicate with
-     * @param test Object to test against
+     * @param field    Field to parse predicate with
+     * @param test     Object to test against
      * @param expected The expected result
-     * @param inputs Predicate parse inputs
+     * @param inputs   Predicate parse inputs
      */
-    record PredicateTest<T>(Field<?, T> field, T test, boolean expected, String... inputs) {}
+    record PredicateTest<T>(Field<?, T> field, T test, boolean expected, String... inputs) {
+    }
 
     List<PredicateTest<?>> predicateTests = List.of(
             new PredicateTest<>(Field.readOnlyField(Boolean.class, null), true, true, "true"),
@@ -76,6 +83,7 @@ public class FieldTest {
                     "contains something_else", "matches ^example:value$")
             // can't test other fields as they depend on Bukkit
     );
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     public void testPredicate() {
@@ -91,7 +99,9 @@ public class FieldTest {
         }
     }
 
-    record TransformerTest<T>(Field<?, T> field, T input, Map<String, T> transformations) {}
+    record TransformerTest<T>(Field<?, T> field, T input, Map<String, T> transformations) {
+    }
+
     List<TransformerTest<?>> transformerTests = List.of(
             new TransformerTest<>(Field.readOnlyField(Integer.class, null), 5, Map.of(
                     ">= 6", 6, "= 10", 10, "11", 11,
@@ -116,7 +126,9 @@ public class FieldTest {
         }
     }
 
-    record EnchantmentPredicateTest(Map<Enchantment, Integer> enchantments, boolean expected, String... inputs) {}
+    record EnchantmentPredicateTest(Map<Enchantment, Integer> enchantments, boolean expected, String... inputs) {
+    }
+
     List<EnchantmentPredicateTest> enchantmentPredicateTests = List.of(
             // contains and conflicts
             new EnchantmentPredicateTest(Map.of(FakeEnchantments.SILK_TOUCH, 1), true,
@@ -135,6 +147,7 @@ public class FieldTest {
                     false, "all is treasure", "all is curse", "all is not treasure", "all is not curse",
                     "none is treasure", "none are curses")
     );
+
     @Test
     public void testEnchantmentField() {
         var enchantmentField = new EnchantmentsField(null);
@@ -186,8 +199,31 @@ public class FieldTest {
     }
 
     @Test
-    public void luaProxyTest() {
+    public void testLuaProxy() {
         assertInstanceOf(LuaProxy.class, Fields.findField(null, "result.enchantments", true).child);
+    }
+
+    @Test
+    public void testLore() {
+        List<String> lore = new ArrayList<>(List.of("aaa", "bbb", "ccc"));
+        ItemMeta meta = DangerousMocks.mockLore(lore);
+        var wrapper = new ItemStackField.ItemStackWrapper(null, meta);
+
+        ItemLoreField field = new ItemLoreField();
+        assertEquals("aaa\nbbb\nccc", field.getFieldWrapped("text").get(wrapper));
+        for (int i = 1; i <= lore.size(); i++)
+            assertEquals(lore.get(i - 1), field.getFieldWrapped(Integer.toString(i)).get(wrapper));
+
+        FieldUtils.set(wrapper, field, "4", "ddd");
+        FieldUtils.set(wrapper, field, "new-line", "ddd");
+        assertIterableEquals(List.of("aaa", "bbb", "ccc", "ddd", "ddd"), lore);
+
+        FieldUtils.set(wrapper, field, "7", "eee");
+        assertIterableEquals(List.of("aaa", "bbb", "ccc", "ddd", "ddd", "", "eee"), lore);
+
+        FieldUtils.set(wrapper, field, "7", "");
+        assertIterableEquals(List.of("aaa", "bbb", "ccc", "ddd", "ddd"), lore);
+
     }
 
 }

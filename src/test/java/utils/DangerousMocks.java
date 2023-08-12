@@ -5,9 +5,11 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.mockito.Mockito;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class DangerousMocks {
@@ -27,6 +29,7 @@ public class DangerousMocks {
 
         return meta;
     }
+
     public static EnchantmentStorageMeta mockStoredEnchants(Map<Enchantment, Integer> enchants) {
         EnchantmentStorageMeta meta = Mockito.mock(EnchantmentStorageMeta.class);
         when(meta.hasStoredEnchants()).thenReturn(true);
@@ -41,6 +44,18 @@ public class DangerousMocks {
                     return enchants.keySet().stream().anyMatch(other::conflictsWith);
                 });
 
+        return meta;
+    }
+
+    public static ItemMeta mockLore(List<String> lore) {
+        ItemMeta meta = Mockito.mock(ItemMeta.class);
+        when(meta.getLore()).thenReturn(lore);
+        doAnswer(invocation -> {
+            List arg = invocation.getArgument(0);
+            lore.clear();
+            lore.addAll(arg);
+            return null;
+        }).when(meta).setLore(any());
         return meta;
     }
 }

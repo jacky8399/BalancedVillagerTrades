@@ -21,13 +21,27 @@ public class ItemLoreField implements ContainerField<ItemStackField.ItemStackWra
 
     public static final SimpleField<List<String>, String> NEW_LINE_FIELD = new SimpleField<>(String.class, ignored -> "", List::add);
     public static final SimpleField<List<String>, Integer> SIZE_FIELD = Field.readOnlyField(Integer.class, List::size);
+    public static final SimpleField<List<String>, String> TEXT_FIELD = new SimpleField<>(String.class,
+            list -> String.join("\n", list),
+            (list, newText) -> {
+                list.clear();
+                list.addAll(Arrays.asList(newText.split("\n")));
+            }
+    );
 
     @Override
     public @Nullable Field<List<String>, ?> getField(String fieldName) {
-        if ("new-line".equals(fieldName))
-            return NEW_LINE_FIELD; // new lines are always empty
-        else if ("size".equals(fieldName))
-            return SIZE_FIELD;
+        switch (fieldName) {
+            case "new-line" -> {
+                return NEW_LINE_FIELD;
+            }
+            case "size" -> {
+                return SIZE_FIELD;
+            }
+            case "text" -> {
+                return TEXT_FIELD;
+            }
+        }
 
         int lineNo;
         try {
@@ -40,7 +54,7 @@ public class ItemLoreField implements ContainerField<ItemStackField.ItemStackWra
                         if (lineNo < list.size()) {
                             list.set(lineNo, newLine);
                         } else {
-                            for (int i = list.size(), end = lineNo - 1; i < end; i++) {
+                            for (int i = list.size(); i < lineNo; i++) {
                                 list.add("");
                             }
                             list.add(newLine);
@@ -51,19 +65,19 @@ public class ItemLoreField implements ContainerField<ItemStackField.ItemStackWra
         }
     }
 
+    private static final List<String> DEFAULT_FIELDS = List.of("new-line", "size", "text");
     @Override
     public @Nullable Collection<String> getFields(ItemStackField.@Nullable ItemStackWrapper itemStackWrapper) {
         List<String> lore;
         if (itemStackWrapper == null || (lore = itemStackWrapper.meta().getLore()) == null || lore.isEmpty())
-            return List.of("new-line", "size");
+            return DEFAULT_FIELDS;
 
-        var names = new ArrayList<String>(2 + lore.size());
-        names.add("new-line");
-        names.add("size");
+        var fields = new ArrayList<String>(DEFAULT_FIELDS.size() + lore.size());
+        fields.addAll(DEFAULT_FIELDS);
         for (int i = 1; i <= lore.size(); i++) {
-            names.add(Integer.toString(i));
+            fields.add(Integer.toString(i));
         }
-        return names;
+        return fields;
     }
 
     @Override
@@ -75,7 +89,11 @@ public class ItemLoreField implements ContainerField<ItemStackField.ItemStackWra
     @Override
     public void set(ItemStackField.ItemStackWrapper itemStackWrapper, List<String> value) {
         var meta = itemStackWrapper.meta();
-        meta.setLore(value);
+        // remove trailing empty lines
+        int end = value.size();
+        for (; end > 0 && value.get(end - 1).isEmpty(); end--) {}
+
+        meta.setLore(value.subList(0, end));
     }
 
     @Override
@@ -111,11 +129,6 @@ public class ItemLoreField implements ContainerField<ItemStackField.ItemStackWra
                 return list;
             }
         };
-    }
-
-    @Override
-    public @Nullable LuaValue getLuaValue(List<String> instance) {
-        return LuaValue.valueOf(String.join("\n", instance));
     }
 
     @Override
