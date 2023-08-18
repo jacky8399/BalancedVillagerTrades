@@ -10,3 +10,5 @@ nerfs:
 
 lua:
   max-instructions: 1000
+  # Whether Lua scripts are allowed to load files in the plugin directory and use the IO library
+  allow-io: false
