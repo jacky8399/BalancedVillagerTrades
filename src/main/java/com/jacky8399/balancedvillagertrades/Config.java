@@ -100,7 +100,7 @@ public class Config {
 
     @SuppressWarnings("deprecation") // thank you Paper, very cool
     public static void sendReport(CommandSender sender, boolean showWarnings) {
-        if (reports.size() == 0)
+        if (reports.isEmpty())
             return;
         List<String> sortedKeys = new ArrayList<>(reports.keySet());
         sortedKeys.sort(null);
@@ -110,19 +110,19 @@ public class Config {
         for (String file : sortedKeys) {
             fileLines.clear();
             Report report = reports.get(file);
-            if (report.errors.size() != 0) {
+            if (!report.errors.isEmpty()) {
                 for (String error : report.errors) {
                     fileLines.add(ChatColor.RED + "  " + error);
                 }
             }
             warnings += report.warnings.size();
-            if (showWarnings && report.warnings.size() != 0) {
+            if (showWarnings && !report.warnings.isEmpty()) {
                 for (String warning : report.warnings) {
                     fileLines.add(ChatColor.YELLOW + "  " + warning);
                 }
             }
 
-            if (fileLines.size() != 0) {
+            if (!fileLines.isEmpty()) {
                 lines.add(ChatColor.AQUA + "[" + file + "]");
                 lines.addAll(fileLines);
             }
@@ -130,7 +130,9 @@ public class Config {
         if (!showWarnings && warnings != 0) {
             sender.sendMessage(ChatColor.YELLOW + "There were " + warnings + " warnings. To see them, run /bvt warnings.");
         }
-        sender.sendMessage(String.join("\n", lines));
+        if (!lines.isEmpty()) {
+            sender.sendMessage(String.join("\n", lines));
+        }
     }
 
     public static int clamp(int original, int min, int max) {

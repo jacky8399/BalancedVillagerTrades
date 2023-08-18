@@ -21,6 +21,8 @@ public class Recipe {
         this.name = name;
     }
 
+    private static final Set<String> VALID_CHILDREN = Set.of("desc", "enabled", "when", "do");
+
     @SuppressWarnings("unchecked")
     public void readFromMap(Map<String, Object> map) throws IllegalArgumentException {
         desc = String.valueOf(map.get("desc"));
@@ -52,6 +54,11 @@ public class Recipe {
             throw new IllegalArgumentException("Expected map at 'do' section");
         }
         actions = Action.getFromMap(name, (Map<String, Object>) doMap);
+
+        for (String key : map.keySet()) {
+            if (!VALID_CHILDREN.contains(key))
+                Config.addWarning("Invalid section " + key + " in recipe");
+        }
     }
 
     public boolean shouldHandle(TradeWrapper trade) {

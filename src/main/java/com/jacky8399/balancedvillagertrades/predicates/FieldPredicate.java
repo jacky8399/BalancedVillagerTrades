@@ -1,7 +1,10 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.jacky8399.balancedvillagertrades.Config;
-import com.jacky8399.balancedvillagertrades.fields.*;
+import com.jacky8399.balancedvillagertrades.fields.ContainerField;
+import com.jacky8399.balancedvillagertrades.fields.Field;
+import com.jacky8399.balancedvillagertrades.fields.FieldProxy;
+import com.jacky8399.balancedvillagertrades.fields.Fields;
 import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.jetbrains.annotations.Nullable;

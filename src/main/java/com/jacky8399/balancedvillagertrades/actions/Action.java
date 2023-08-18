@@ -1,13 +1,13 @@
 package com.jacky8399.balancedvillagertrades.actions;
 
+import com.jacky8399.balancedvillagertrades.Config;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 public abstract class Action implements Consumer<TradeWrapper> {
+    private static final Set<String> VALID_CHILDREN = Set.of("set", "remove", "echo", "lua", "lua-file");
     @SuppressWarnings("unchecked")
     public static List<Action> getFromMap(String name, Map<String, Object> map) throws IllegalArgumentException {
         List<Action> actions = new ArrayList<>();
@@ -41,8 +41,13 @@ public abstract class Action implements Consumer<TradeWrapper> {
                 throw new IllegalArgumentException("Expected string at 'lua-file' section");
             actions.add(ActionLua.fromFile(name, string));
         }
-        if (actions.size() == 0)
+        if (actions.isEmpty())
             throw new IllegalArgumentException("Empty action");
+        for (String key : map.keySet()) {
+            if (!VALID_CHILDREN.contains(key)) {
+                Config.addWarning("Invalid section " + key + " in 'do' block");
+            }
+        }
         return actions;
     }
 
