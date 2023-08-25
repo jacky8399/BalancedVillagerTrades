@@ -8,6 +8,7 @@ import com.jacky8399.balancedvillagertrades.fields.SimpleField;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -20,7 +21,28 @@ import java.util.Objects;
 import java.util.function.*;
 
 public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWrapper> implements ContainerField<T, ItemStackField.ItemStackWrapper> {
-    public record ItemStackWrapper(ItemStack stack, ItemMeta meta) {
+    public static class ItemStackWrapper {
+        ItemStack stack;
+        ItemMeta meta;
+
+        public ItemStackWrapper(ItemStack stack, ItemMeta meta) {
+            this.stack = stack;
+            this.meta = meta;
+        }
+
+        public ItemStack stack() {
+            return stack;
+        }
+
+        public ItemMeta meta() {
+            return meta;
+        }
+
+        public void setMeta(ItemMeta meta) {
+            this.meta = meta;
+            stack.setItemMeta(meta);
+        }
+
         static ItemStackWrapper fromStack(ItemStack stack) {
             return new ItemStackWrapper(stack, stack.getItemMeta());
         }
@@ -32,7 +54,7 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
                 getter,
                 setter != null ? (t, wrapper) -> {
                     if (wrapper != null && wrapper.stack != null) {
-                        wrapper.stack.setItemMeta(wrapper.meta);
+                        wrapper.setMeta(wrapper.meta);
                         setter.accept(t, wrapper);
                     } else {
                         setter.accept(t, null);
@@ -81,9 +103,21 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
             .put("name", metaField(String.class,
                     meta -> meta.hasDisplayName() ? meta.getDisplayName() : null,
                     ItemMeta::setDisplayName))
-            .put("unbreakable", metaField(Boolean.class,
-                    ItemMeta::isUnbreakable, ItemMeta::setUnbreakable))
+            .put("unbreakable", metaField(Boolean.class, ItemMeta::isUnbreakable, ItemMeta::setUnbreakable))
             .put("lore", new ItemLoreField())
+            .put("nbt", new SimpleField<>(String.class,
+                    wrapper -> wrapper.meta.getAsString(),
+                    (wrapper, newNbt) -> {
+                        NamespacedKey key = wrapper.stack.getType().getKey();
+                        try {
+                            ItemStack newIs = Bukkit.getItemFactory().createItemStack(key + newNbt);
+                            ItemMeta meta = newIs.getItemMeta();
+                            wrapper.setMeta(meta);
+                        } catch (IllegalArgumentException ex) {
+                            throw new IllegalArgumentException("Invalid NBT data: " + newNbt, ex);
+                        }
+                    }
+            ))
             .build();
 
     @Override
