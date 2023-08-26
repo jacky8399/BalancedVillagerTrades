@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades.utils.lua;
 
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.utils.EnchantmentUtils;
 import net.md_5.bungee.api.ChatColor;
 import org.luaj.vm2.Globals;
@@ -11,17 +12,45 @@ import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.VarArgFunction;
 
 import java.awt.*;
+import java.util.Random;
 
 public class ScriptUtilities {
 
     public static void inject(Globals globals) {
         globals.set("enchantments", ENCHANTMENT_UTILS);
         globals.set("color", COLOR);
+        globals.set("random", RANDOM);
     }
 
     public static final ScriptRunner.ReadOnlyLuaTable ENCHANTMENT_UTILS;
 
     public static final ScriptRunner.ReadOnlyLuaTable COLOR;
+
+    // stolen from MathLib.random
+    public static final LibFunction RANDOM = new LibFunction() {
+        private final Random random = BalancedVillagerTrades.RANDOM;
+        @Override
+        public LuaValue call() {
+            return valueOf(random.nextDouble());
+        }
+
+        @Override
+        public LuaValue call(LuaValue a) {
+            int m = a.checkint();
+            if (m < 1)
+                argerror(1, "interval is empty");
+            return valueOf(1+random.nextInt(m));
+        }
+
+        @Override
+        public LuaValue call(LuaValue a, LuaValue b) {
+            int m = a.checkint();
+            int n = b.checkint();
+            if (n < m)
+                argerror(2, "interval is empty");
+            return valueOf(m+random.nextInt(n+1-m));
+        }
+    };
 
     static {
         var enchantments = new LuaTable();

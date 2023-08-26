@@ -1,5 +1,6 @@
 package com.jacky8399.balancedvillagertrades.utils;
 
+import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.IntPredicate;
@@ -12,6 +13,7 @@ public class OperatorUtils {
     public static final Pattern BASIC_COMPARISON = Pattern.compile("^(>|>=|<|<=|==?|<>|!=)\\s*(\\d+)$");
     public static final Pattern OPERATORS = Pattern.compile("^([+\\-*/%]=)\\s*(\\d+)$");
     public static final Pattern BETWEEN = Pattern.compile("^between\\s+(\\d+)\\s+and\\s+(\\d+)$");
+    public static final Pattern RANDOM_BETWEEN = Pattern.compile("^random between\\s+(\\d+)\\s+and\\s+(\\d+)$");
     public static final Pattern IN_RANGE = Pattern.compile("^in\\s+(\\d+)(?:-|\\.{2,3})(\\d+)$");
 
     @Nullable
@@ -24,6 +26,8 @@ public class OperatorUtils {
         } else if ((matcher = BETWEEN.matcher(input)).matches() || (matcher = IN_RANGE.matcher(input)).matches()) {
             int min = Integer.parseInt(matcher.group(1));
             int max = Integer.parseInt(matcher.group(2));
+            if (min > max)
+                throw new IllegalArgumentException("Empty interval " + min + ".." + max);
             return i -> i >= min && i <= max;
         }
         return null;
@@ -39,57 +43,44 @@ public class OperatorUtils {
         } else if ((matcher = BETWEEN.matcher(input)).matches() || (matcher = IN_RANGE.matcher(input)).matches()) {
             int min = Integer.parseInt(matcher.group(1));
             int max = Integer.parseInt(matcher.group(2));
+            if (min > max)
+                throw new IllegalArgumentException("Empty interval " + min + ".." + max);
             return i -> Math.min(Math.max(i, min), max);
+        } else if ((matcher = RANDOM_BETWEEN.matcher(input)).matches()) {
+            int min = Integer.parseInt(matcher.group(1));
+            int max = Integer.parseInt(matcher.group(2)) + 1; // inclusive
+            if (min > max)
+                throw new IllegalArgumentException("Empty interval " + min + ".." + max);
+            return i -> BalancedVillagerTrades.RANDOM.nextInt(min, max);
         }
         return null;
     }
 
     public static IntPredicate getPredicateFromOperator(String operator, int operand) {
-        switch (operator) {
-            case ">":
-                return i -> i > operand;
-            case "<":
-                return i -> i < operand;
-            case ">=":
-                return i -> i >= operand;
-            case "<=":
-                return i -> i <= operand;
-            case "=":
-            case "==":
-                return i -> i == operand;
-            case "!=":
-            case "<>":
-                return i -> i != operand;
-            default:
-                throw new IllegalArgumentException(operator + " is not a valid operator");
-        }
+        return switch (operator) {
+            case ">" -> i -> i > operand;
+            case "<" -> i -> i < operand;
+            case ">=" -> i -> i >= operand;
+            case "<=" -> i -> i <= operand;
+            case "=", "==" -> i -> i == operand;
+            case "!=", "<>" -> i -> i != operand;
+            default -> throw new IllegalArgumentException(operator + " is not a valid operator");
+        };
     }
 
     public static IntUnaryOperator getFunctionFromOperator(String operator, IntSupplier operand) {
-        switch (operator) {
-            case ">":
-                return i -> Math.max(i, operand.getAsInt() + 1);
-            case "<":
-                return i -> Math.min(i, operand.getAsInt() - 1);
-            case ">=":
-                return i -> Math.max(i, operand.getAsInt());
-            case "<=":
-                return i -> Math.min(i, operand.getAsInt());
-            case "=":
-            case "==":
-                return i -> operand.getAsInt();
-            case "+=":
-                return i -> i + operand.getAsInt();
-            case "-=":
-                return i -> i - operand.getAsInt();
-            case "*=":
-                return i -> i * operand.getAsInt();
-            case "/=":
-                return i -> i / operand.getAsInt();
-            case "%=":
-                return i -> i % operand.getAsInt();
-            default:
-                throw new IllegalArgumentException(operator + " is not a valid operator");
-        }
+        return switch (operator) {
+            case ">" -> i -> Math.max(i, operand.getAsInt() + 1);
+            case "<" -> i -> Math.min(i, operand.getAsInt() - 1);
+            case ">=" -> i -> Math.max(i, operand.getAsInt());
+            case "<=" -> i -> Math.min(i, operand.getAsInt());
+            case "=", "==" -> i -> operand.getAsInt();
+            case "+=" -> i -> i + operand.getAsInt();
+            case "-=" -> i -> i - operand.getAsInt();
+            case "*=" -> i -> i * operand.getAsInt();
+            case "/=" -> i -> i / operand.getAsInt();
+            case "%=" -> i -> i % operand.getAsInt();
+            default -> throw new IllegalArgumentException(operator + " is not a valid operator");
+        };
     }
 }

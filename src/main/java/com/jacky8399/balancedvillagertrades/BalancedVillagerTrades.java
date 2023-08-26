@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Random;
 import java.util.logging.Logger;
 
 public final class BalancedVillagerTrades extends JavaPlugin {
@@ -14,6 +15,7 @@ public final class BalancedVillagerTrades extends JavaPlugin {
     public void onEnable() {
         INSTANCE = this;
         LOGGER = getLogger();
+        RANDOM = new Random();
 
         getCommand("balancedvillagertrades").setExecutor(new CommandBvt());
 
@@ -40,6 +42,7 @@ public final class BalancedVillagerTrades extends JavaPlugin {
 
     public static BalancedVillagerTrades INSTANCE;
     public static Logger LOGGER;
+    public static Random RANDOM;
     @Nullable
     public static ReputationProvider REPUTATION;
 }

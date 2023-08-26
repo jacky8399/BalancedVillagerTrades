@@ -28,6 +28,7 @@
 ---@field name string
 ---@field unbreakable boolean
 ---@field lore Lore
+---@field nbt string The NBT data.
 
 ---The enchantments of an item
 ---@class ItemEnchantments: ContainerField
@@ -197,7 +198,7 @@ trade = {}
 ---@field size integer
 ---@field empty boolean
 ---@field [0|1|2|3|4|5|6|7|8] ItemStack The item in the specified slot.
----@field [NamespacedKey] integer The number of items matching a type. 
+---@field [NamespacedKey] integer The number of items matching a type.
 
 ---Utilities related to enchantments.
 ---@class EnchantmentUtils
@@ -243,3 +244,13 @@ color = {
     ---@overload fun(color: string): string
     of=function(r, g, b) end
 }
+
+
+---The random number generator is shared across scripts, and may yield better results than math.random().
+---* `math.random()`: Returns a float in the range [0,1).
+---* `math.random(n)`: Returns a integer in the range [1, n].
+---* `math.random(m, n)`: Returns a integer in the range [m, n].
+---@param m integer
+---@param n integer
+---@return number
+function random(m, n) end
