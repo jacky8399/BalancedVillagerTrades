@@ -3,6 +3,7 @@ package com.jacky8399.balancedvillagertrades.fields;
 import com.google.common.collect.Maps;
 import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.jetbrains.annotations.NotNull;
@@ -33,10 +34,10 @@ public class Fields {
                     trade -> trade.getRecipe().getVillagerExperience(),
                     (trade, villagerXP) -> trade.getRecipe().setVillagerExperience(villagerXP))),
             entry("ingredient-0", ItemStackField.create(
-                    trade -> trade.getRecipe().getIngredients().get(0),
+                    trade -> getIngredient(0, trade),
                     (trade, stack) -> setIngredient(0, trade, stack))),
             entry("ingredient-1", ItemStackField.create(
-                    trade -> trade.getRecipe().getIngredients().get(1),
+                    trade -> getIngredient(1, trade),
                     (trade, stack) -> setIngredient(1, trade, stack))),
             entry("result", ItemStackField.create(trade -> trade.getRecipe().getResult(), Fields::setResult)),
             entry("villager", VillagerField.INSTANCE),
@@ -52,6 +53,7 @@ public class Fields {
                     return "trade";
                 }
             };
+    public static final ItemStack EMPTY_STACK = new ItemStack(Material.AIR);
 
     @NotNull
     public static FieldProxy<TradeWrapper, ?, ?> findField(@Nullable ContainerField<TradeWrapper, ?> root, String path, boolean recursive) {
@@ -122,11 +124,15 @@ public class Fields {
         return Collections.singletonMap(path, root);
     }
 
-    private static void setIngredient(int index, TradeWrapper trade, @Nullable final ItemStack stack) {
-        if (stack == null) {
-            throw new NullPointerException();
-        }
-        List<ItemStack> stacks = new ArrayList<>(trade.getRecipe().getIngredients());
+    private static ItemStack getIngredient(int index, TradeWrapper trade) {
+        List<ItemStack> ingredients = trade.getRecipe().getIngredients();
+        return index < ingredients.size() ? ingredients.get(index) : EMPTY_STACK;
+    }
+
+    private static void setIngredient(int index, TradeWrapper trade, ItemStack stack) {
+        Objects.requireNonNull(stack);
+        // ensure that the list always has 2 elements
+        ItemStack[] stacks = trade.getRecipe().getIngredients().toArray(new ItemStack[2]);
         if (stack.getAmount() > stack.getMaxStackSize()) {
             ItemStack clone = stack.clone();
             if (index == 0) { // only split first ingredient
@@ -134,16 +140,16 @@ public class Fields {
                 clone.setAmount(clone.getMaxStackSize());
                 ItemStack extra = stack.clone();
                 extra.setAmount(remainder);
-                stacks.set(0, clone);
-                stacks.set(1, extra);
+                stacks[0] = clone;
+                stacks[1] = extra;
             } else {
                 clone.setAmount(clone.getMaxStackSize());
-                stacks.set(1, clone);
+                stacks[1] = clone;
             }
         } else {
-            stacks.set(index, stack);
+            stacks[index] = stack;
         }
-        trade.getRecipe().setIngredients(stacks);
+        trade.getRecipe().setIngredients(Arrays.asList(stacks));
     }
 
     private static void setResult(TradeWrapper trade, ItemStack stack) {
