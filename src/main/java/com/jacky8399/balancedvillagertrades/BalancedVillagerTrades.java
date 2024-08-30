@@ -3,13 +3,25 @@ package com.jacky8399.balancedvillagertrades;
 import com.jacky8399.balancedvillagertrades.utils.reputation.ReputationProvider;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.java.JavaPluginLoader;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.util.Random;
 import java.util.logging.Logger;
 
-public final class BalancedVillagerTrades extends JavaPlugin {
+public class BalancedVillagerTrades extends JavaPlugin {
+
+    public BalancedVillagerTrades() {
+        super();
+    }
+
+    @SuppressWarnings("removal")
+    protected BalancedVillagerTrades(JavaPluginLoader loader, PluginDescriptionFile description, File dataFolder, File file) {
+        super(loader, description, dataFolder, file);
+    }
 
     @Override
     public void onEnable() {
@@ -26,7 +38,10 @@ public final class BalancedVillagerTrades extends JavaPlugin {
         saveDefaultConfig();
         reloadConfig();
 
-        new Metrics(this, 11784);
+        // stolen from slimefun, don't run metrics if running unit tests
+        if (!getClassLoader().getClass().getPackageName().startsWith("be.seeseemelk.mockbukkit")) {
+            new Metrics(this, 11784);
+        }
     }
 
     @Override

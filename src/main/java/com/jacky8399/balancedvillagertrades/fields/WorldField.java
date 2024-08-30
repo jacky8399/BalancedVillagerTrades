@@ -2,15 +2,8 @@ package com.jacky8399.balancedvillagertrades.fields;
 
 import org.bukkit.World;
 import org.bukkit.entity.Villager;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.lib.TwoArgFunction;
 
 import java.util.Map;
-import java.util.Random;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public class WorldField extends SimpleContainerField<Villager, World> {
 
@@ -20,7 +13,7 @@ public class WorldField extends SimpleContainerField<Villager, World> {
             "environment", Field.readOnlyField(String.class, world -> world.getEnvironment().name()),
             "time", Field.readOnlyField(Integer.class, world -> (int) world.getTime()),
             "full-time", Field.readOnlyField(Integer.class, world -> (int) world.getFullTime()),
-            "is-day-time", Field.readOnlyField(Boolean.class, World::isDayTime),
+            "is-day-time", Field.readOnlyField(Boolean.class, world -> world.getTime() < 12000),
             "weather", Field.readOnlyField(String.class,
                     world -> world.isThundering() ? "thunder" : world.hasStorm() ? "rain" : "clear"),
             "seed", Field.readOnlyField(Integer.class, world -> (int) world.getSeed()),

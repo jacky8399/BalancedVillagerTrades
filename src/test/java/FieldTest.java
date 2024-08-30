@@ -1,3 +1,4 @@
+import be.seeseemelk.mockbukkit.MockBukkit;
 import com.google.common.collect.ImmutableMap;
 import com.jacky8399.balancedvillagertrades.BalancedVillagerTrades;
 import com.jacky8399.balancedvillagertrades.fields.Field;
@@ -12,10 +13,10 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import utils.DangerousMocks;
-import utils.FakeEnchantments;
 import utils.FieldUtils;
 
 import java.util.ArrayList;
@@ -24,17 +25,26 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FieldTest {
     @BeforeAll
     public static void registerFakeEnchants() {
-        BalancedVillagerTrades.LOGGER = Logger.getLogger("BVT");
-        FakeEnchantments.MENDING.getKey();
+//        BalancedVillagerTrades.LOGGER = Logger.getLogger("BVT");
+    }
+    static BalancedVillagerTrades plugin;
+
+    @BeforeAll
+    public static void setUp() {
+        MockBukkit.mock();
+        plugin = MockBukkit.load(BalancedVillagerTrades.class);
     }
 
+    @AfterAll
+    public static void tearDown() {
+        MockBukkit.unmock();
+    }
 
     Map<String, Class<?>> fields = Map.of(
             "ingredient-0", ItemStackField.ItemStackWrapper.class,
@@ -131,20 +141,20 @@ public class FieldTest {
 
     List<EnchantmentPredicateTest> enchantmentPredicateTests = List.of(
             // contains and conflicts
-            new EnchantmentPredicateTest(Map.of(FakeEnchantments.SILK_TOUCH, 1), true,
+            new EnchantmentPredicateTest(Map.of(Enchantment.SILK_TOUCH, 1), true,
                     "contains silk_touch", "contains minecraft:silk_touch",
                     "conflicts with silk_touch", "conflicts with SILK_TOUCH",
                     "conflicts with fortune", "conflicts with minecraft:Fortune"),
-            new EnchantmentPredicateTest(Map.of(FakeEnchantments.SILK_TOUCH, 1), false,
+            new EnchantmentPredicateTest(Map.of(Enchantment.SILK_TOUCH, 1), false,
                     "contains vanishing_curse", "contains MINEcraft:fortune",
                     "conflicts with mending", "conflicts with MENDING"),
             // categories
-            new EnchantmentPredicateTest(Map.of(FakeEnchantments.SILK_TOUCH, 1, FakeEnchantments.FORTUNE, 1),
+            new EnchantmentPredicateTest(Map.of(Enchantment.SILK_TOUCH, 1, Enchantment.FORTUNE, 1),
                     true, "all is non-treasure", "all is nontreasure", "all are not curses",
                     "all is n't curse", "all isn't curse", "all is nt curse", "all isnt curse",
                     "none is treasure", "none is curse", "some is not treasure", "any is not curse"),
-            new EnchantmentPredicateTest(Map.of(FakeEnchantments.MENDING, 1, FakeEnchantments.VANISHING_CURSE, 1),
-                    false, "all is treasure", "all is curse", "all is not treasure", "all is not curse",
+            new EnchantmentPredicateTest(Map.of(Enchantment.MENDING, 1, Enchantment.VANISHING_CURSE, 1),
+                    false, "all isn't treasure", "all is curse", "all is not treasure", "all is not curse",
                     "none is treasure", "none are curses")
     );
 
@@ -172,8 +182,8 @@ public class FieldTest {
         // test Lua interop
         // maintain order with ImmutableMap
         var enchants = ImmutableMap.of(
-                FakeEnchantments.FORTUNE, 3,
-                FakeEnchantments.SILK_TOUCH, 1
+                Enchantment.FORTUNE, 3,
+                Enchantment.SILK_TOUCH, 1
         );
         ItemMeta meta = DangerousMocks.mockEnchants(enchants);
         var wrapper = new ItemStackField.ItemStackWrapper(null, meta);

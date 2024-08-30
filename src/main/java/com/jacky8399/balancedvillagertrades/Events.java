@@ -80,7 +80,7 @@ public class Events implements Listener {
                             ReputationProvider.ReputationTypeWrapped.MAJOR_NEGATIVE, Config.nerfNegativeReputationOnKilledReputationPenalty
                     );
                     // show angry particles
-                    player.spawnParticle(Particle.VILLAGER_ANGRY, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);
+                    player.spawnParticle(Particle.ANGRY_VILLAGER, villager.getLocation().add(0, villager.getHeight() + 0.5, 0), 4, 0.5, 0.5, 0.5);
                 }
             }
         }
