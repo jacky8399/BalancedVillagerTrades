@@ -19,6 +19,8 @@
 
 ---Represents a stack of item.
 ---@class ItemStack: ContainerField
+---@field max_stack_size integer
+---@field max_damage integer
 ---@field amount integer
 ---@field type NamespacedKey
 ---@field enchantments ItemEnchantments Deprecated. Use `safe_enchantments` or `unsafe_enchantments` instead.

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.jacky8399'
-version = '2.0-beta9'
+version = '2.0-beta10'
 
 repositories {
     mavenCentral()
@@ -39,7 +39,7 @@ dependencies {
 
     // Tests
     testImplementation 'org.mockito:mockito-core:5.12.0'
-    testImplementation 'com.github.seeseemelk:MockBukkit-v1.21:3.107.0'
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.21:3.120.2'
     testImplementation(platform('org.junit:junit-bom:5.10.3'))
     testImplementation('org.junit.jupiter:junit-jupiter')
 }

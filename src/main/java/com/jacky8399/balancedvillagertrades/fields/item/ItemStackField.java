@@ -7,6 +7,7 @@ import com.jacky8399.balancedvillagertrades.fields.NamespacedKeyField;
 import com.jacky8399.balancedvillagertrades.fields.SimpleField;
 import com.jacky8399.balancedvillagertrades.utils.OperatorUtils;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
+import com.jacky8399.balancedvillagertrades.utils.VersionUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -85,6 +86,11 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
             .put("amount", new SimpleField<>(Integer.class,
                     stack -> stack.stack.getAmount(),
                     (wrapper, amount) -> wrapper.stack.setAmount(amount)))
+            .put("max-stack-size", new SimpleField<>(Integer.class,
+                    stack -> stack.stack.getMaxStackSize(),
+                    VersionUtils::setMaxStackSize
+            ))
+            .put("max-damage", new SimpleField<>(Integer.class, VersionUtils::getMaxDamage, VersionUtils::setMaxDamage))
             .put("type", new NamespacedKeyField<>(
                     is -> is.stack.getType().getKey(),
                     (is, key) -> {
@@ -106,7 +112,7 @@ public class ItemStackField<T> extends SimpleField<T, ItemStackField.ItemStackWr
             .put("unbreakable", metaField(Boolean.class, ItemMeta::isUnbreakable, ItemMeta::setUnbreakable))
             .put("lore", new ItemLoreField())
             .put("nbt", new SimpleField<>(String.class,
-                    wrapper -> wrapper.meta.getAsString(),
+                    VersionUtils::getNbt,
                     (wrapper, newNbt) -> {
                         NamespacedKey key = wrapper.stack.getType().getKey();
                         try {

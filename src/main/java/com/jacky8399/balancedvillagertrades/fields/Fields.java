@@ -53,7 +53,7 @@ public class Fields {
                     return "trade";
                 }
             };
-    public static final ItemStack EMPTY_STACK = new ItemStack(Material.AIR);
+    public static final ItemStack EMPTY_STACK = new ItemStack(Material.AIR, 0);
 
     @NotNull
     public static FieldProxy<TradeWrapper, ?, ?> findField(@Nullable ContainerField<TradeWrapper, ?> root, String path, boolean recursive) {
@@ -124,32 +124,64 @@ public class Fields {
         return Collections.singletonMap(path, root);
     }
 
+    private static boolean shouldCombineIngredients(List<ItemStack> ingredients) {
+        @SuppressWarnings("SizeReplaceableByIsEmpty")
+        ItemStack slot0 = ingredients.size() > 0 ? ingredients.get(0) : EMPTY_STACK;
+        ItemStack slot1 = ingredients.size() > 1 ? ingredients.get(1) : EMPTY_STACK;
+        return slot0.isSimilar(slot1) ||
+                (slot1.getType() == Material.AIR || slot1.getAmount() == 0);
+    }
+
     private static ItemStack getIngredient(int index, TradeWrapper trade) {
         List<ItemStack> ingredients = trade.getRecipe().getIngredients();
-        return index < ingredients.size() ? ingredients.get(index) : EMPTY_STACK;
+        if (index < ingredients.size()) {
+            if (shouldCombineIngredients(ingredients)) {
+                // collapse both stacks into 1
+                if (index == 0 && !ingredients.isEmpty()) {
+                    ItemStack clone = ingredients.get(0);
+                    if (ingredients.size() > 1) {
+                        clone.setAmount(clone.getAmount() + ingredients.get(1).getAmount());
+                    }
+                    return clone;
+                } else {
+                    return EMPTY_STACK;
+                }
+            }
+            return ingredients.get(index);
+        }
+        return EMPTY_STACK;
     }
 
     private static void setIngredient(int index, TradeWrapper trade, ItemStack stack) {
         Objects.requireNonNull(stack);
         // ensure that the list always has 2 elements
-        ItemStack[] stacks = trade.getRecipe().getIngredients().toArray(new ItemStack[2]);
-        if (stack.getAmount() > stack.getMaxStackSize()) {
-            ItemStack clone = stack.clone();
-            if (index == 0) { // only split first ingredient
-                int remainder = Math.min(clone.getAmount() - clone.getMaxStackSize(), clone.getMaxStackSize());
-                clone.setAmount(clone.getMaxStackSize());
-                ItemStack extra = stack.clone();
-                extra.setAmount(remainder);
-                stacks[0] = clone;
-                stacks[1] = extra;
-            } else {
-                clone.setAmount(clone.getMaxStackSize());
-                stacks[1] = clone;
+        @NotNull ItemStack[] stacks = {EMPTY_STACK, EMPTY_STACK};
+        var ingredients = trade.getRecipe().getIngredients();
+        for (int i = 0; i < ingredients.size(); i++) {
+            stacks[i] = ingredients.get(i);
+        }
+        if (index == 0) {
+            int amount = stack.getAmount();
+            ItemStack slot0 = stack.clone();
+            int maxStackSize = slot0.getMaxStackSize();
+            int remaining = Math.max(0, Math.min(amount - maxStackSize, maxStackSize));
+            slot0.setAmount(Math.min(amount, maxStackSize));
+            stacks[0] = slot0;
+            if (shouldCombineIngredients(ingredients) || stack.isSimilar(stacks[1])) {
+                ItemStack slot1 = stack.clone();
+                slot1.setAmount(remaining);
+                stacks[1] = slot1;
             }
         } else {
             stacks[index] = stack;
         }
-        trade.getRecipe().setIngredients(Arrays.asList(stacks));
+        // what
+        List<ItemStack> actualList = new ArrayList<>(2);
+        if (stacks[0].getType() != Material.AIR && stacks[0].getAmount() != 0)
+            actualList.add(stacks[0]);
+        if (stacks[1].getType() != Material.AIR && stacks[1].getAmount() != 0)
+            actualList.add(stacks[1]);
+        trade.getRecipe().setIngredients(actualList);
     }
 
     private static void setResult(TradeWrapper trade, ItemStack stack) {
