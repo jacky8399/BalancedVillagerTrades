@@ -43,7 +43,10 @@ public class Fields {
             entry("villager", VillagerField.INSTANCE),
             entry("world", VillagerField.INSTANCE.andThen(VillagerField.WORLD_FIELD)),
             entry("index", Field.readOnlyField(Integer.class, TradeWrapper::getIndex)),
-            entry("is-new", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe))
+            entry("is-new", Field.readOnlyField(Boolean.class, TradeWrapper::isNewRecipe)),
+            entry("merchant-type", new NamespacedKeyField<>(
+                    tradeWrapper -> tradeWrapper.getVillager().getType().getKey(), null
+            ))
     );
 
     public static final ContainerField<TradeWrapper, TradeWrapper> ROOT_FIELD =

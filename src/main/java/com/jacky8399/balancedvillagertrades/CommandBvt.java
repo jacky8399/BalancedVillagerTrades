@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
@@ -41,7 +42,7 @@ public class CommandBvt implements TabExecutor {
 
         TradeWrapper wrapper;
         try {
-            Villager villager = selectVillager(sender, args[1]);
+            AbstractVillager villager = selectVillager(sender, args[1]);
             int recipeId = Integer.parseInt(args[2]);
             wrapper = new TradeWrapper(villager, recipeId != -1 ?
                     villager.getRecipe(recipeId) : null, recipeId, false);
@@ -104,7 +105,7 @@ public class CommandBvt implements TabExecutor {
     private void doScript(@NotNull CommandSender sender, String label, String[] args) {
         int index = 1;
         String lastToken = null;
-        Villager villager = null;
+        AbstractVillager villager = null;
         int recipeIndex = -1;
         boolean isNew = false;
         String chunkName = null;
@@ -315,7 +316,7 @@ public class CommandBvt implements TabExecutor {
                 return completeVillager(sender);
             } else {
                 try {
-                    Villager villager = selectVillager(sender, args[1]);
+                    AbstractVillager villager = selectVillager(sender, args[1]);
                     // show recipe IDs for:
                     // /bvt getfield <villager> recipeId
                     // /bvt runscriptfile <villager> recipeId
@@ -349,7 +350,7 @@ public class CommandBvt implements TabExecutor {
                     // find villager
                     for (int i = 1; i < args.length - 2; i++) {
                         if (args[i].equals("villager")) {
-                            Villager villager = selectVillager(sender, args[i + 1]);
+                            AbstractVillager villager = selectVillager(sender, args[i + 1]);
                             yield IntStream.range(0, villager.getRecipeCount()).mapToObj(Integer::toString).toList();
                         }
                     }
@@ -363,7 +364,7 @@ public class CommandBvt implements TabExecutor {
         return List.of();
     }
 
-    private static Villager selectVillager(CommandSender sender, String selector) throws IllegalArgumentException {
+    private static AbstractVillager selectVillager(CommandSender sender, String selector) throws IllegalArgumentException {
         List<Entity> entities;
         try {
             entities = Bukkit.selectEntities(sender, selector);
@@ -374,8 +375,8 @@ public class CommandBvt implements TabExecutor {
             throw new IllegalArgumentException("Expected 1 entity, got " + entities.size());
         }
         Entity entity = entities.get(0);
-        if (!(entity instanceof Villager villager)) {
-            throw new IllegalArgumentException("Expected villager, got " + entity.getType().name());
+        if (!(entity instanceof AbstractVillager villager)) {
+            throw new IllegalArgumentException("Expected villager or wandering_trader, got " + entity.getType().name());
         }
         return villager;
     }
@@ -390,7 +391,7 @@ public class CommandBvt implements TabExecutor {
                     player.getEyeLocation(), player.getLocation().getDirection(),
                     5, e -> e instanceof Villager
             );
-            if (rayTrace != null && rayTrace.getHitEntity() instanceof Villager villager) {
+            if (rayTrace != null && rayTrace.getHitEntity() instanceof AbstractVillager villager) {
                 completions.add(villager.getUniqueId().toString());
             }
         }

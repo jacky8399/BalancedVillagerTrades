@@ -2,6 +2,7 @@ package com.jacky8399.balancedvillagertrades.predicates;
 
 import com.google.common.base.Preconditions;
 import org.bukkit.Material;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
@@ -36,7 +37,7 @@ public class IngredientPredicate extends ItemPredicate {
     public final int ingredient;
 
     @Override
-    public @Nullable ItemStack getStack(Villager villager, MerchantRecipe recipe) {
+    public @Nullable ItemStack getStack(AbstractVillager villager, MerchantRecipe recipe) {
         List<ItemStack> ingredients = recipe.getIngredients();
         if (ingredients.size() > ingredient) {
             return ingredients.get(ingredient);

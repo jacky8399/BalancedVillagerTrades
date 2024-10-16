@@ -1,6 +1,7 @@
 package com.jacky8399.balancedvillagertrades.predicates;
 
 import org.bukkit.Material;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
@@ -30,7 +31,7 @@ public class ResultPredicate extends ItemPredicate {
     }
 
     @Override
-    public @Nullable ItemStack getStack(Villager villager, MerchantRecipe recipe) {
+    public @Nullable ItemStack getStack(AbstractVillager villager, MerchantRecipe recipe) {
         return recipe.getResult();
     }
 

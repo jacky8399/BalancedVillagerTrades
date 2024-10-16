@@ -31,7 +31,7 @@ public class SimpleContainerField<TOwner, TField> extends SimpleField<TOwner, TF
 
     @SuppressWarnings("unchecked")
     protected <T, C extends Field<TField, T>> C getFieldUnsafe(String fieldName) {
-        return (C) fields.get(fieldName);
+        return (C) getField(fieldName);
     }
 
     @Override

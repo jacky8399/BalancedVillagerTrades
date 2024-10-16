@@ -4,6 +4,7 @@ import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import com.jacky8399.balancedvillagertrades.utils.reputation.ReputationProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
@@ -40,11 +41,11 @@ public class Events implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEntityEvent e) {
-        if (e.getRightClicked() instanceof Villager villager) {
-            List<MerchantRecipe> newRecipes = new ArrayList<>(villager.getRecipes());
+        if (e.getRightClicked() instanceof AbstractVillager abstractVillager) {
+            List<MerchantRecipe> newRecipes = new ArrayList<>(abstractVillager.getRecipes());
             for (var iterator = newRecipes.listIterator(); iterator.hasNext();) {
                 int index = iterator.nextIndex();
-                TradeWrapper trade = new TradeWrapper(villager, iterator.next(), index, false);
+                TradeWrapper trade = new TradeWrapper(abstractVillager, iterator.next(), index, false);
                 for (Recipe recipe : Recipe.RECIPES.values()) {
                     if (recipe.ignoreRemoved && trade.isRemove())
                         continue;
@@ -57,7 +58,7 @@ public class Events implements Listener {
                 }
                 iterator.set(trade.getRecipe());
             }
-            villager.setRecipes(newRecipes);
+            abstractVillager.setRecipes(newRecipes);
         }
     }
 

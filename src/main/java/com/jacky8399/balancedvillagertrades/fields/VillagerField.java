@@ -5,6 +5,7 @@ import com.jacky8399.balancedvillagertrades.fields.item.ItemStackField;
 import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Villager;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -15,31 +16,34 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
-    private static <T> Field<Villager, T> field(Class<T> clazz, Function<Villager, T> function) {
-        return Field.readOnlyField(clazz, function);
-    }
+class VillagerField extends SimpleContainerField<TradeWrapper, AbstractVillager> {
 
     private static final InventoryField INVENTORY_FIELD = new InventoryField();
 
-    public static final Field<Villager, World> WORLD_FIELD = new WorldField();
+    public static final Field<AbstractVillager, World> WORLD_FIELD = new WorldField();
 
-    private static final Map<String, Field<Villager, ?>> FIELDS = Map.of(
-            "type", field(String.class, villager -> villager.getVillagerType().name()),
-            "profession", field(String.class, villager -> villager.getProfession().name()),
-            "level", field(Integer.class, Villager::getVillagerLevel),
-            "experience", field(Integer.class, Villager::getVillagerExperience),
-            "recipe-count", field(Integer.class, Merchant::getRecipeCount),
+    private static final Field<AbstractVillager, Villager> REQUIRE_VILLAGER =
+            Field.readOnlyField(Villager.class, abstractVillager -> abstractVillager instanceof Villager villager ? villager : null);
+    private static final Map<String, Field<AbstractVillager, ?>> FIELDS = Map.of(
+            "recipe-count", Field.readOnlyField(Integer.class, Merchant::getRecipeCount),
             "inventory", INVENTORY_FIELD,
-            "world", WORLD_FIELD
+            "world", WORLD_FIELD,
+            // the following fields are only available on villagers
+            "type", REQUIRE_VILLAGER.andThen(new NamespacedKeyField<>(
+                    villager -> villager != null ? villager.getVillagerType().getKey() : null, null)),
+            "profession", REQUIRE_VILLAGER.andThen(new NamespacedKeyField<>(
+                    villager -> villager != null ? villager.getProfession().getKey() : null, null)),
+            "level", REQUIRE_VILLAGER.andThen(Field.readOnlyField(Integer.class,
+                    villager -> villager != null ? villager.getVillagerLevel() : 0)),
+            "experience", REQUIRE_VILLAGER.andThen(Field.readOnlyField(Integer.class,
+                    villager -> villager != null ? villager.getVillagerExperience() : 0))
     );
 
     private VillagerField() {
-        super(Villager.class, TradeWrapper::getVillager, null, FIELDS);
+        super(AbstractVillager.class, TradeWrapper::getVillager, null, FIELDS);
     }
 
     public static VillagerField INSTANCE = new VillagerField();
@@ -47,12 +51,12 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
     private static final Pattern LEGACY_VILLAGER_SYNTAX = Pattern.compile("^(profession|type)\\s*(=|matches)\\s*(.+)$", Pattern.CASE_INSENSITIVE);
 
     @Override
-    public @NotNull BiPredicate<TradeWrapper, Villager> parsePredicate(@NotNull String input) throws IllegalArgumentException {
+    public @NotNull BiPredicate<TradeWrapper, AbstractVillager> parsePredicate(@NotNull String input) throws IllegalArgumentException {
         Matcher matcher = LEGACY_VILLAGER_SYNTAX.matcher(input);
         if (matcher.matches()) {
             Config.addWarning("Using 'villager: profession/type ...' to target villagers is deprecated.");
             String fieldName = matcher.group(1);
-            Field<Villager, String> field = getFieldUnsafe(fieldName);
+            Field<AbstractVillager, String> field = getFieldUnsafe(fieldName);
             var predicate = field.parsePredicate(matcher.group(2) + matcher.group(3));
             return (tradeWrapper, value) -> {
                 var intermediate = field.get(value);
@@ -63,13 +67,13 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
     }
 
     @Override
-    public @NotNull BiFunction<TradeWrapper, Villager, Villager> parseTransformer(@Nullable String input) throws IllegalArgumentException {
+    public @NotNull BiFunction<TradeWrapper, AbstractVillager, AbstractVillager> parseTransformer(@Nullable String input) throws IllegalArgumentException {
         return super.parseTransformer(input);
     }
 
-    public static class InventoryField extends SimpleField<Villager, Inventory> implements ContainerField<Villager, Inventory> {
+    public static class InventoryField extends SimpleField<AbstractVillager, Inventory> implements ContainerField<AbstractVillager, Inventory> {
         public InventoryField() {
-            super(Inventory.class, Villager::getInventory, null);
+            super(Inventory.class, AbstractVillager::getInventory, null);
         }
 
         @Override
@@ -123,7 +127,7 @@ class VillagerField extends SimpleContainerField<TradeWrapper, Villager> {
         }
 
         @Override
-        public @Nullable Collection<String> getFields(Villager villager) {
+        public @Nullable Collection<String> getFields(AbstractVillager villager) {
             if (villager == null)
                 return Arrays.asList("size", "empty");
             List<String> fields = new ArrayList<>();

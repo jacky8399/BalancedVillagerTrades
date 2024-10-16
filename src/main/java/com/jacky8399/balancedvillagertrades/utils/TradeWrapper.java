@@ -1,23 +1,23 @@
 package com.jacky8399.balancedvillagertrades.utils;
 
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.inventory.MerchantRecipe;
 
 public class TradeWrapper {
-    public TradeWrapper(Villager villager, MerchantRecipe recipe, int index, boolean newRecipe) {
+    public TradeWrapper(AbstractVillager villager, MerchantRecipe recipe, int index, boolean newRecipe) {
         this.villager = villager;
         this.recipe = recipe;
         this.index = index;
         this.newRecipe = newRecipe;
     }
 
-    private final Villager villager;
+    private final AbstractVillager villager;
     private MerchantRecipe recipe;
     private final int index;
     private final boolean newRecipe;
     private boolean remove = false;
 
-    public Villager getVillager() {
+    public AbstractVillager getVillager() {
         return villager;
     }
 

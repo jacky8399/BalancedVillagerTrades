@@ -1,11 +1,11 @@
 package com.jacky8399.balancedvillagertrades.fields;
 
 import org.bukkit.World;
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.AbstractVillager;
 
 import java.util.Map;
 
-public class WorldField extends SimpleContainerField<Villager, World> {
+public class WorldField extends SimpleContainerField<AbstractVillager, World> {
 
 
     private static final Map<String, Field<World, ?>> WORLD_FIELDS = Map.of(
@@ -21,7 +21,7 @@ public class WorldField extends SimpleContainerField<Villager, World> {
     );
 
     WorldField() {
-        super(World.class, Villager::getWorld, null, WORLD_FIELDS);
+        super(World.class, AbstractVillager::getWorld, null, WORLD_FIELDS);
     }
 
 }

@@ -7,7 +7,7 @@ import com.jacky8399.balancedvillagertrades.utils.TradeWrapper;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.AbstractVillager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -41,7 +41,7 @@ public abstract class ItemPredicate extends TradePredicate {
     public final ImmutableList<ItemMatcher> simpleMatchers;
 
     @Nullable
-    public abstract ItemStack getStack(Villager villager, MerchantRecipe recipe);
+    public abstract ItemStack getStack(AbstractVillager villager, MerchantRecipe recipe);
 
     @Override
     public boolean test(TradeWrapper tradeWrapper) {
