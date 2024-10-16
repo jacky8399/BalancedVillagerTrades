@@ -25,7 +25,7 @@ public class NamespacedKeyField<TOwner> extends SimpleField<TOwner, NamespacedKe
             NamespacedKey key = NamespacedKey.fromString(lowercase);
             if (key == null)
                 throw new IllegalArgumentException("Invalid resource location " + lowercase);
-            return (ignored, value) -> value.equals(key);
+            return (ignored, value) -> key.equals(value);
         }
         String operator = matcher.group(1);
         if (operator.equals("=") || operator.equals("==")) {
@@ -33,7 +33,7 @@ public class NamespacedKeyField<TOwner> extends SimpleField<TOwner, NamespacedKe
             NamespacedKey operand = NamespacedKey.fromString(key);
             if (operand == null)
                 throw new IllegalArgumentException("Invalid resource location " + key);
-            return (ignored, value) -> value.equals(operand);
+            return (ignored, value) -> operand.equals(value);
         }
         // support string predicates
         BiPredicate<TradeWrapper, String> stringPredicate = parsePrimitivePredicate(String.class, input);
